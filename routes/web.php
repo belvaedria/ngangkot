@@ -68,7 +68,6 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::get('/home', [AdmDashboard::class, 'index'])->name('dashboard');
         Route::resource('trayek', AdmTrayek::class);
-        Route::resource('angkot', AdmAngkot::class);
         Route::get('/verifikasi', [AdmVerifikasi::class, 'index'])->name('verifikasi.index');
         Route::post('/verifikasi/{id}/approve', [AdmVerifikasi::class, 'approve'])->name('verifikasi.approve');
         Route::post('/verifikasi/{id}/reject', [AdmVerifikasi::class, 'reject'])->name('verifikasi.reject');
