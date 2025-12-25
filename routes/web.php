@@ -17,7 +17,6 @@ use App\Http\Controllers\Driver\RiwayatController as DrvRiwayat;
 
 use App\Http\Controllers\Admin\TrayekController as AdmTrayek;
 use App\Http\Controllers\Admin\DashboardController as AdmDashboard;
-use App\Http\Controllers\Admin\AngkotController as AdmAngkot;
 use App\Http\Controllers\Admin\VerifikasiController as AdmVerifikasi;
 use App\Http\Controllers\Admin\LaporanController as AdmLaporan;
 use App\Http\Controllers\Admin\ArtikelController as AdmArtikel;
@@ -44,7 +43,7 @@ Route::get('/dashboard', function () {
 
 // --- AREA LOGIN ---
 Route::middleware(['auth'])->group(function () {
-    
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
