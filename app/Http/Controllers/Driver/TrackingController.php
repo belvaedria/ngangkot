@@ -12,6 +12,24 @@ class TrackingController extends Controller
         return view('driver.tracking.index', compact('angkot'));
     }
 
+    public function pilihAngkot(Request $request) {
+        $request->validate(['angkot_id' => 'required|exists:angkots,id']);
+
+        // Lepas angkot lama jika ada
+        Angkot::where('user_id', Auth::id())->update(['user_id' => null, 'is_active' => false]);
+        
+        // Ambil angkot baru
+        $angkot = Angkot::findOrFail($request->angkot_id);
+        
+        // Double check availability
+        if($angkot->user_id && $angkot->user_id !== Auth::id()) {
+            return back()->with('error', 'Angkot ini sedang dipakai supir lain.');
+        }
+
+        $angkot->update(['user_id' => Auth::id()]);
+        return back()->with('success', 'Angkot dipilih. Siap narik!');
+    }
+    
     public function updateStatus(Request $request) {
         $angkot = Angkot::where('user_id', Auth::id())->first();
         if($angkot) {
