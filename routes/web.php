@@ -60,6 +60,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/home', [DrvDashboard::class, 'index'])->name('dashboard');
         Route::get('/tracking', [DrvTracking::class, 'index'])->name('tracking.index');
         Route::post('/tracking', [DrvTracking::class, 'updateStatus'])->name('tracking.update');
+        Route::post('/tracking/lokasi', [DrvTracking::class, 'updateLokasi'])->name('tracking.lokasi'); // <--- UPDATE LOKASI (GPS)
         Route::resource('angkot', DrvAngkot::class);
         Route::post('/angkot/pilih', [DrvAngkot::class, 'pilihAngkot'])->name('angkot.pilih');
         Route::get('/riwayat', [DrvRiwayat::class, 'index'])->name('riwayat.index');

@@ -21,4 +21,25 @@ class TrackingController extends Controller
         }
         return back()->with('error', 'Pilih angkot dulu di menu Kelola Angkot.');
     }
+
+    public function updateLokasi(Request $request) {
+        $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric'
+        ]);
+
+        $angkot = Angkot::where('user_id', Auth::id())
+                        ->where('is_active', true)
+                        ->first();
+
+        if ($angkot) {
+            $angkot->update([
+                'lat_sekarang' => $request->lat,
+                'lng_sekarang' => $request->lng
+            ]);
+            return response()->json(['status' => 'success']);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Angkot tidak aktif'], 400);
+    }
 }
