@@ -1,33 +1,40 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicController;
 
-// Import Controller dengan Alias agar tidak bentrok nama DashboardController
-use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
-use App\Http\Controllers\Admin\TrayekController as AdminTrayek;
-use App\Http\Controllers\Admin\AngkotController as AdminAngkot;
-use App\Http\Controllers\Admin\VerifikasiController as AdminVerifikasi;
-use App\Http\Controllers\Admin\LaporanController as AdminLaporan;
-use App\Http\Controllers\Admin\ArtikelController as AdminArtikel;
-use App\Http\Controllers\Admin\FaqController as AdminFaq;
+// Alias Controller biar gak bentrok nama
+use App\Http\Controllers\Passenger\NavigasiController as PasNavigasi;
+use App\Http\Controllers\Passenger\RiwayatController as PasRiwayat;
+use App\Http\Controllers\Passenger\DashboardController as PasDashboard;
+use App\Http\Controllers\Passenger\LaporanController as PasLaporan;
+use App\Http\Controllers\Passenger\EdukasiController as PasEdukasi;
 
-use App\Http\Controllers\Driver\DashboardController as DriverDashboard;
-use App\Http\Controllers\Driver\AngkotController as DriverAngkot;
-use App\Http\Controllers\Driver\RiwayatController as DriverRiwayat;
+use App\Http\Controllers\Driver\TrackingController as DrvTracking;
+use App\Http\Controllers\Driver\DashboardController as DrvDashboard;
+use App\Http\Controllers\Driver\AngkotController as DrvAngkot;
+use App\Http\Controllers\Driver\RiwayatController as DrvRiwayat;
 
-use App\Http\Controllers\Passenger\DashboardController as PassengerDashboard;
-use App\Http\Controllers\Passenger\NavigasiController as PassengerNavigasi;
-use App\Http\Controllers\Passenger\LaporanController as PassengerLaporan;
-use App\Http\Controllers\Passenger\EdukasiController as PassengerEdukasi;
+use App\Http\Controllers\Admin\TrayekController as AdmTrayek;
+use App\Http\Controllers\Admin\DashboardController as AdmDashboard;
+use App\Http\Controllers\Admin\AngkotController as AdmAngkot;
+use App\Http\Controllers\Admin\VerifikasiController as AdmVerifikasi;
+use App\Http\Controllers\Admin\LaporanController as AdmLaporan;
+use App\Http\Controllers\Admin\ArtikelController as AdmArtikel;
+use App\Http\Controllers\Admin\FaqController as AdmFaq;
 
-// 1. HALAMAN PUBLIK
+
+// --- PUBLIC (Tanpa Login) ---
 Route::get('/', [PublicController::class, 'index'])->name('home');
+Route::get('/trayek/{kode}', [PublicController::class, 'show'])->name('trayek.show');
 
-// 2. AUTHENTICATION (Breeze)
+// FITUR KAMU: Navigasi (Bisa Public)
+Route::get('/navigasi', [PasNavigasi::class, 'index'])->name('navigasi.index');
+Route::post('/navigasi/cari', [PasNavigasi::class, 'searchRoute'])->name('navigasi.search');
+
 require __DIR__.'/auth.php';
 
-// 3. LOGIC REDIRECTOR (Pemisah Pintu Masuk)
+// --- DASHBOARD REDIRECTOR ---
 Route::get('/dashboard', function () {
     $role = auth()->user()->role;
     if ($role === 'admin') return redirect()->route('admin.dashboard');
@@ -35,49 +42,40 @@ Route::get('/dashboard', function () {
     return redirect()->route('passenger.dashboard');
 })->middleware(['auth'])->name('dashboard');
 
-
-// 4. GROUP ROUTE PER MODUL (HMVC)
-
+// --- AREA LOGIN ---
 Route::middleware(['auth'])->group(function () {
+    
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // --- MODUL ADMIN ---
-    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
-        Route::get('/home', [AdminDashboard::class, 'index'])->name('dashboard');
-        
-        // Fitur CRUD
-        Route::resource('trayek', AdminTrayek::class);
-        Route::resource('angkot', AdminAngkot::class);
-        Route::resource('artikel', AdminArtikel::class);
-        Route::resource('faq', AdminFaq::class);
-        
-        // Verifikasi
-        Route::get('/verifikasi-driver', [AdminVerifikasi::class, 'index'])->name('verifikasi.index');
-        Route::post('/verifikasi-driver/{id}/approve', [AdminVerifikasi::class, 'approve'])->name('verifikasi.approve');
-        Route::post('/verifikasi-driver/{id}/reject', [AdminVerifikasi::class, 'reject'])->name('verifikasi.reject');
-
-        // Laporan
-        Route::resource('laporan', AdminLaporan::class)->only(['index', 'update']);
-    });
-
-    // --- MODUL DRIVER ---
-    Route::prefix('driver')->name('driver.')->middleware('role:driver')->group(function () {
-        Route::get('/home', [DriverDashboard::class, 'index'])->name('dashboard');
-        
-        // Fitur Driver
-        Route::get('/kelola-angkot', [DriverAngkot::class, 'index'])->name('angkot.index');
-        Route::get('/riwayat-perjalanan', [DriverRiwayat::class, 'index'])->name('riwayat.index');
-    });
-
-    // --- MODUL PASSENGER ---
     Route::prefix('passenger')->name('passenger.')->middleware('role:passenger')->group(function () {
-        Route::get('/home', [PassengerDashboard::class, 'index'])->name('dashboard');
-        
-        // Navigasi
-        Route::get('/navigasi', [PassengerNavigasi::class, 'index'])->name('navigasi.index');
-        Route::post('/navigasi/cari', [PassengerNavigasi::class, 'searchRoute'])->name('navigasi.search');
-        
-        // Fitur Lain
-        Route::resource('laporan', PassengerLaporan::class);
-        Route::get('/edukasi', [PassengerEdukasi::class, 'index'])->name('edukasi.index');
+        Route::get('/home', [PasDashboard::class, 'index'])->name('dashboard');
+        Route::get('/riwayat', [PasRiwayat::class, 'index'])->name('riwayat.index');
+        Route::post('/favorit', [PasRiwayat::class, 'storeFavorit'])->name('favorit.store');
+        Route::resource('laporan', PasLaporan::class);
+        Route::resource('edukasi', PasEdukasi::class);
     });
+
+    Route::prefix('driver')->name('driver.')->middleware('role:driver')->group(function () {
+        Route::get('/home', [DrvDashboard::class, 'index'])->name('dashboard');
+        Route::get('/tracking', [DrvTracking::class, 'index'])->name('tracking.index');
+        Route::post('/tracking', [DrvTracking::class, 'updateStatus'])->name('tracking.update');
+        Route::resource('angkot', DrvAngkot::class);
+        Route::post('/angkot/pilih', [DrvAngkot::class, 'pilihAngkot'])->name('angkot.pilih');
+        Route::get('/riwayat', [DrvRiwayat::class, 'index'])->name('riwayat.index');
+    });
+
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+        Route::get('/home', [AdmDashboard::class, 'index'])->name('dashboard');
+        Route::resource('trayek', AdmTrayek::class);
+        Route::resource('angkot', AdmAngkot::class);
+        Route::get('/verifikasi', [AdmVerifikasi::class, 'index'])->name('verifikasi.index');
+        Route::post('/verifikasi/{id}/approve', [AdmVerifikasi::class, 'approve'])->name('verifikasi.approve');
+        Route::post('/verifikasi/{id}/reject', [AdmVerifikasi::class, 'reject'])->name('verifikasi.reject');
+        Route::resource('laporan', AdmLaporan::class)->only(['index', 'update']);
+        Route::resource('artikel', AdmArtikel::class);
+        Route::resource('faq', AdmFaq::class);
+    });
+
 });
