@@ -24,7 +24,6 @@ class RiwayatController extends Controller
         // 2. Ambil Daftar Favorit
         $favorit = RuteFavorit::where('user_id', Auth::id())
                     ->latest()
-                    ->take(50)
                     ->get();
         
         return view('passenger.riwayat.index', compact('riwayat', 'favorit'));

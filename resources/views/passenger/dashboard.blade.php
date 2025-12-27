@@ -1,11 +1,13 @@
-@extends('layouts.app_dashboard')
-@section('title', 'Beranda — Penumpang')
-@section('page-title', 'Halo, Wargi Bandung!')
+@extends('layouts.app')
+
+@section('title', 'Dashboard Penumpang - Ngangkot')
 
 @section('content')
-<div class="relative min-h-[70vh] bg-slate-50 overflow-hidden rounded-2xl">
-    <!-- PETA BACKGROUND -->
-    <div id="map" class="absolute inset-0 w-full h-full z-0 filter brightness-95 opacity-90"></div>
+<!-- Container Fullscreen dengan Negative Margin agar Peta memenuhi layar di balik Navbar Glass -->
+<div class="absolute inset-0 w-full h-full bg-slate-50 overflow-hidden -z-0">
+    
+    <!-- 1. PETA BACKGROUND -->
+    <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
     
     <!-- Overlay Gradient agar teks di atas peta terbaca -->
     <div class="absolute inset-0 bg-gradient-to-b from-white/90 via-transparent to-transparent pointer-events-none h-48 z-0"></div>
@@ -54,25 +56,18 @@
                     <div class="absolute left-3 top-1/2 -translate-y-1/2 bg-white p-1 rounded-full shadow-sm">
                         <i data-lucide="map-pin" class="w-3 h-3 text-rose-500"></i>
                     </div>
-                    <input type="text" id="input_tujuan" name="nama_tujuan" placeholder="Mau kemana? (Misal: Stasiun Hall)" required
+                    <input type="text" name="nama_tujuan" placeholder="Mau kemana? (Misal: Stasiun Hall)" required
                            class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-300 transition-all text-sm font-bold text-slate-800 placeholder:text-slate-400">
-
-                    <!-- Dropdown suggestion (hidden until needed) -->
-                    <div id="places_dropdown" class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto hidden"></div>
-
-                    <!-- Small hint for provider source -->
-                    <div id="place_source_label" class="text-xs text-slate-400 mt-1 hidden">Sumber: <span id="place_source_name" class="font-bold"></span></div>
-                    <div class="text-xs text-slate-300 mt-1">Preferensi provider: <span class="font-bold">Mapbox</span> → <span class="font-bold">LocationIQ</span> → <span class="font-bold">Nominatim</span>. Untuk hasil terbaik, atur <code>MAPBOX_ACCESS_TOKEN</code> di file <code>.env</code>.</div>
-
-                    <!-- Hidden inputs untuk menyimpan koordinat tujuan -->
-                    <input type="hidden" id="lat_tujuan" name="lat_tujuan">
-                    <input type="hidden" id="lng_tujuan" name="lng_tujuan">
-                    <input type="hidden" id="place_source" name="place_source">
+                    
+                    <!-- Contoh Data Statis untuk Demo (Seharusnya pakai Geocoding JS di frontend untuk dapet lat/lng tujuan) -->
+                    <!-- Agar form bisa disubmit dan dihitung controllernya -->
+                    <input type="hidden" name="lat_tujuan" value="-6.916127"> 
+                    <input type="hidden" name="lng_tujuan" value="107.602418">
                 </div>
 
                 <button type="submit" id="btn-cari" disabled
-                        class="w-full mt-3 py-4 bg-slate-900 text-white rounded-2xl font-black text-base shadow-2xl hover:bg-slate-800 transition-transform transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Cari Rute Tercepat
+                        class="w-full mt-2 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Cari Rute <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
         </div>
@@ -151,90 +146,6 @@
             }
         );
     }
-
-    // 3. Autocomplete tujuan via Nominatim proxy (/places)
-    (function(){
-        const input = document.getElementById('input_tujuan');
-        const dropdown = document.getElementById('places_dropdown');
-        let timer = null;
-
-        input.addEventListener('input', (e) => {
-            const q = e.target.value.trim();
-            if (timer) clearTimeout(timer);
-            if (q.length < 1) { dropdown.classList.add('hidden'); return; }
-            timer = setTimeout(() => {
-                fetch('/places?q=' + encodeURIComponent(q))
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!Array.isArray(data) || data.length === 0) {
-                            dropdown.innerHTML = '<div class="p-2 text-xs text-slate-400">Tidak ada hasil</div>';
-                            dropdown.classList.remove('hidden');
-                            return;
-                        }
-                        dropdown.innerHTML = data.map(p => `
-                            <div data-lat="${p.lat}" data-lng="${p.lng}" data-name="${p.name}" data-source="${p.source || ''}" class="cursor-pointer p-2 hover:bg-slate-50 border-b last:border-b-0 text-sm">
-                                <div class="flex justify-between items-center">
-                                    <div class="font-bold truncate">${p.name}</div>
-                                    <div class="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full ml-2">${p.source ? p.source.toUpperCase() : ''}</div>
-                                </div>
-                                <div class="text-xs text-slate-400">${p.address || ''}</div>
-                            </div>
-                        `).join('');
-                        dropdown.classList.remove('hidden');
-
-                        Array.from(dropdown.children).forEach(child => {
-                            child.addEventListener('click', () => {
-                                const lat = child.dataset.lat;
-                                const lng = child.dataset.lng;
-                                const name = child.dataset.name;
-                                const source = child.dataset.source || '';
-                                document.getElementById('lat_tujuan').value = lat;
-                                document.getElementById('lng_tujuan').value = lng;
-                                document.getElementById('input_tujuan').value = name;
-                                document.getElementById('place_source').value = source;
-                                // show source label
-                                if (source) {
-                                    document.getElementById('place_source_name').innerText = source.toUpperCase();
-                                    document.getElementById('place_source_label').classList.remove('hidden');
-                                } else {
-                                    document.getElementById('place_source_label').classList.add('hidden');
-                                }
-
-                                dropdown.classList.add('hidden');
-
-                                // show marker
-                                L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map).bindPopup(name).openPopup();
-
-                                // enable submit
-                                document.getElementById('btn-cari').disabled = false;
-                                document.getElementById('btn-cari').classList.remove('opacity-50', 'cursor-not-allowed');
-                            });
-                        });
-                    })
-                    .catch(() => {
-                        dropdown.innerHTML = '<div class="p-2 text-xs text-slate-400">Terjadi kesalahan</div>';
-                        dropdown.classList.remove('hidden');
-                    });
-            }, 250);
-        });
-
-        document.addEventListener('click', (ev) => {
-            if (!dropdown.contains(ev.target) && ev.target !== input) dropdown.classList.add('hidden');
-        });
-    })();
-
-    // Klik peta untuk pilih tujuan (opsional)
-    map.on('click', function(e) {
-        const lat = e.latlng.lat.toFixed(6);
-        const lng = e.latlng.lng.toFixed(6);
-        document.getElementById('lat_tujuan').value = lat;
-        document.getElementById('lng_tujuan').value = lng;
-        document.getElementById('input_tujuan').value = 'Lokasi dipilih ('+lat+','+lng+')';
-
-        L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map).bindPopup('Lokasi dipilih').openPopup();
-        document.getElementById('btn-cari').disabled = false;
-        document.getElementById('btn-cari').classList.remove('opacity-50', 'cursor-not-allowed');
-    });
 </script>
 @endpush
 @endsection

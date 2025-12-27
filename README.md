@@ -54,26 +54,6 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-## Konfigurasi Provider Geocoding (Mapbox / LocationIQ)
-
-Untuk fitur pencarian lokasi (autocomplete) aplikasi ini menggunakan Mapbox sebagai prioritas, lalu LocationIQ, dan terakhir Nominatim publik sebagai fallback.
-
-1. Buat akun dan dapatkan token:
-   - Mapbox: https://www.mapbox.com
-   - LocationIQ: https://locationiq.com
-
-2. Masukkan token ke file `.env` (contoh sudah tersedia di `.env.example`):
-   - MAPBOX_ACCESS_TOKEN=your_mapbox_token_here
-   - LOCATIONIQ_ACCESS_TOKEN=your_locationiq_token_here
-
-3. Muat ulang konfigurasi:
-   - php artisan config:clear
-
-4. Pengujian:
-   - Buka: `http://127.0.0.1:8000/places?q=alun+alun` untuk memeriksa provider yang merespons.
-
-**Catatan:** Jangan commit file `.env` ke repo publik. Token bersifat sensitif.
-
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

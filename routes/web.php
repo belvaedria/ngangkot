@@ -25,18 +25,11 @@ use App\Http\Controllers\Admin\FaqController as AdmFaq;
 
 // --- PUBLIC (Tanpa Login) ---
 Route::get('/', [PublicController::class, 'index'])->name('home');
-Route::get('/trayek', [PublicController::class, 'trayekIndex'])->name('trayek.index');
 Route::get('/trayek/{kode}', [PublicController::class, 'show'])->name('trayek.show');
 
 // FITUR KAMU: Navigasi (Bisa Public)
 Route::get('/navigasi', [PasNavigasi::class, 'index'])->name('navigasi.index');
 Route::post('/navigasi/cari', [PasNavigasi::class, 'searchRoute'])->name('navigasi.search');
-// Places autocomplete (Nominatim proxy)
-Route::get('/places', [PasNavigasi::class, 'places'])->name('places.search');
-
-// Edukasi (artikel/faq) - terbuka untuk publik (index/show)
-Route::get('/edukasi', [PasEdukasi::class, 'index'])->name('edukasi.index');
-Route::get('/edukasi/{edukasi}', [PasEdukasi::class, 'show'])->name('edukasi.show');
 
 require __DIR__.'/auth.php';
 
@@ -49,18 +42,16 @@ Route::get('/dashboard', function () {
 })->middleware(['auth'])->name('dashboard');
 
 // --- AREA LOGIN ---
-Route::middleware([\App\Http\Middleware\EnsureFriendlyAuthenticated::class])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::prefix('passenger')->name('passenger.')->middleware('role:passenger')->group(function () {
-        // Beranda (alias Navigasi) - redirect passenger home to navigasi for single unified UX
-        Route::get('/home', function() { return redirect()->route('navigasi.index'); })->name('dashboard');
+        Route::get('/home', [PasDashboard::class, 'index'])->name('dashboard');
         Route::get('/riwayat', [PasRiwayat::class, 'index'])->name('riwayat.index');
         Route::post('/favorit', [PasRiwayat::class, 'storeFavorit'])->name('favorit.store');
-        Route::delete('/favorit/{id}', [PasRiwayat::class, 'destroyFavorit'])->name('favorit.destroy');
         Route::resource('laporan', PasLaporan::class);
         Route::resource('edukasi', PasEdukasi::class);
     });

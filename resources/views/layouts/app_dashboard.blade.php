@@ -64,11 +64,6 @@
 
         <!-- Menu Navigation (DINAMIS DARI VIEW CHILD) -->
         <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scroll">
-            {{-- If the child view defines a `sidebar-menu` section, use it; otherwise include passenger menu so guests see passenger nav --}}
-            @if (!View::hasSection('sidebar-menu'))
-                @include('layouts.menus.passenger')
-            @endif
-
             @yield('sidebar-menu')
         </nav>
 
@@ -113,58 +108,6 @@
     <script>
         lucide.createIcons();
     </script>
-
-    <!-- Modal untuk notifikasi login (untuk guest) -->
-    <div id="authModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50" aria-hidden="true">
-        <div class="bg-white p-6 rounded-lg shadow max-w-md w-full">
-            <h3 class="font-black text-lg">Akses Terbatas</h3>
-            <p id="authModalMessage" class="text-sm text-slate-600 mt-2">Mohon maaf, fitur ini hanya tersedia untuk wargi yang sudah bergabung. Silakan masuk terlebih dahulu.</p>
-            <div class="mt-4 flex gap-3 justify-end">
-                <button id="authModalBack" class="px-4 py-2 bg-slate-100 rounded-lg">Kembali</button>
-                <a id="authModalLogin" href="/login" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold">Masuk</a>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Handle clicks on links that require auth (guest behavior)
-        document.addEventListener('click', function(e) {
-            const el = e.target.closest && e.target.closest('.requires-auth');
-            if (!el) return;
-            e.preventDefault();
-            const intended = el.dataset.intended || '/';
-            // show modal
-            const modal = document.getElementById('authModal');
-            const loginBtn = document.getElementById('authModalLogin');
-            const backBtn = document.getElementById('authModalBack');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            // set login link to include redirect param
-            loginBtn.href = '/login?redirect=' + encodeURIComponent(intended);
-
-            const closeModal = () => { modal.classList.remove('flex'); modal.classList.add('hidden'); };
-            backBtn.onclick = () => closeModal();
-
-            // clicking outside modal closes it
-            modal.addEventListener('click', function(ev) {
-                if (ev.target === modal) closeModal();
-            }, { once: true });
-        });
-
-        // Remove/hide any injected AI assistant widget textually matching 'Ngangkot AI Assistant' (design-only widget)
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                document.querySelectorAll('*').forEach(el => {
-                    if (el.textContent && el.textContent.includes('Ngangkot AI Assistant')) el.remove();
-                });
-                // also hide common chat container selectors just in case
-                ['#assistant', '.assistant', '.chat', '[data-assistant]'].forEach(sel => {
-                    document.querySelectorAll(sel).forEach(e => e.remove());
-                });
-            } catch (e) { /* no-op */ }
-        });
-    </script>
-
     @stack('scripts')
 </body>
 </html>
