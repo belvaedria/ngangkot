@@ -33,8 +33,8 @@ class NavigasiController extends Controller
 
     public function index(Request $request)
     {
-        // Pastikan panel "Trayek Aktif" memiliki data saat view di-render.
-        $trayeks = \App\Models\Trayek::all();
+        // Pastikan panel "Trayek Aktif" hanya menampilkan trayek yang diaktifkan untuk menu.
+        $trayeks = \App\Models\Trayek::where('tampil_di_menu', true)->get();
         // Optional prefill when coming from favorites (query params).
         $prefill = $request->only(['lat_asal','lng_asal','nama_asal','lat_tujuan','lng_tujuan','nama_tujuan','asal_coords','tujuan_coords']);
         // If client passed coords as "lat,lng" pairs (asal_coords / tujuan_coords), split them for the form.
@@ -57,20 +57,29 @@ class NavigasiController extends Controller
      */
     public function searchRoute(Request $request)
     {
-        // 1. Validasi: Pastikan Frontend mengirim Koordinat
+        // 1. Validasi: Pastikan frontend mengirim koordinat tujuan; asal bersifat opsional
         $request->validate([
-            'lat_asal' => 'required|numeric',
-            'lng_asal' => 'required|numeric',
             'lat_tujuan' => 'required|numeric',
             'lng_tujuan' => 'required|numeric',
-            'nama_asal' => 'required',
             'nama_tujuan' => 'required'
         ]);
 
-        $latAsal = $request->lat_asal;
-        $lngAsal = $request->lng_asal;
+        // Origin optional: jika tidak diberikan, gunakan pusat kota Bandung sebagai fallback
+        $centerLat = -6.917464; $centerLng = 107.619122;
+        $latAsal = $request->lat_asal ?? null;
+        $lngAsal = $request->lng_asal ?? null;
         $latTujuan = $request->lat_tujuan;
         $lngTujuan = $request->lng_tujuan;
+
+        // If origin missing, fallback to city center (allows search without requiring geolocation)
+        if (empty($latAsal) || empty($lngAsal)) {
+            $latAsal = $centerLat;
+            $lngAsal = $centerLng;
+        }
+
+        $request->nama_asal = $request->nama_asal ?? 'Pusat Kota Bandung';
+
+
 
         // 1) First try: flexible RouteFinder (multi-transfer, several variants)
         $variants = [];
@@ -223,10 +232,12 @@ class NavigasiController extends Controller
         $message = null;
         if (empty($hasilPencarian)) {
             $message = 'Rute menuju tujuan belum tersedia. Coba titik asal/tujuan lain atau cek trayek terdekat.';
+            // Return as an alert popup on the navigasi page (so it's a modal, not a separate page)
+            return redirect()->route('navigasi.index')->withInput()->with('alert', $message);
         }
 
         // Return ke View Hasil
-        return view('passenger.navigasi.result', ['trayeks' => $hasilPencarian, 'message' => $message]);
+        return view('passenger.navigasi.result', ['trayeks' => $hasilPencarian]);
     }
 
     /**

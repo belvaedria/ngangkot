@@ -2,7 +2,8 @@
 
 @php
     $active = request()->routeIs($route . '*');
-    $href = Route::has($route) ? route($route) : '#';
+    // If the named route exists use it, otherwise construct a reasonable path so link is clickable (placeholder page)
+    $href = Route::has($route) ? route($route) : url('/' . str_replace('.', '/', $route));
     $needsAuth = $requireAuth && !auth()->check();
 @endphp
 

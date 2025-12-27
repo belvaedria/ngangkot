@@ -36,16 +36,23 @@
                 <!-- Garis Visual -->
                 <div class="absolute left-[1.35rem] top-10 bottom-10 w-0.5 border-l-2 border-dashed border-slate-300 z-0"></div>
 
-                <!-- Input Asal -->
+<!-- Input Asal (Editable, optional) -->
                 <div class="relative group z-10">
                     <div class="absolute left-3 top-1/2 -translate-y-1/2 bg-white p-1 rounded-full shadow-sm">
                         <div class="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
                     </div>
-                    <!-- Input Tampilan (Readonly karena auto GPS) -->
-                    <input type="text" id="display_asal" placeholder="Sedang mencari lokasi..." readonly
-                           value="{{ $prefill['nama_asal'] ?? '' }}"
-                           class="w-full pl-10 pr-4 py-3 bg-blue-50/50 border border-blue-100 rounded-xl outline-none text-sm font-bold text-slate-700 placeholder:text-slate-400 cursor-not-allowed">
-                    
+                    <!-- Input tampilan: editable sehingga user bisa ketik alamat asal sendiri -->
+                    <div class="flex gap-2 items-center">
+                        <input type="text" id="display_asal" placeholder="Ketik lokasi awal atau gunakan tombol lokasi" 
+                               value="{{ $prefill['nama_asal'] ?? '' }}"
+                               class="flex-1 pl-10 pr-4 py-3 bg-blue-50 border border-blue-100 rounded-xl outline-none text-sm font-bold text-slate-700 placeholder:text-slate-400">
+
+                        <button id="btn-use-location" type="button" title="Gunakan Lokasi Saya" 
+                                class="p-2 rounded-lg bg-white border border-slate-100 text-slate-500 hover:text-blue-600">
+                            <i data-lucide="crosshair" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
                     <!-- Hidden Input Data Sebenarnya -->
                     <input type="hidden" id="lat_asal" name="lat_asal" value="{{ $prefill['lat_asal'] ?? '' }}">
                     <input type="hidden" id="lng_asal" name="lng_asal" value="{{ $prefill['lng_asal'] ?? '' }}">
@@ -112,6 +119,147 @@
 </div>
 
 @push('scripts')
-{{-- same scripts as before --}} 
+<script>
+    // Init map
+    var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-6.917464, 107.619122], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+
+    // Use-my-location button behavior (does not force user)
+    const useBtn = document.getElementById('btn-use-location');
+    if (useBtn && navigator.geolocation) {
+        useBtn.addEventListener('click', () => {
+            useBtn.classList.add('opacity-60');
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude; const lng = pos.coords.longitude;
+                map.setView([lat, lng], 15);
+                L.marker([lat, lng]).addTo(map).bindPopup('Lokasi Kamu').openPopup();
+                document.getElementById('lat_asal').value = lat;
+                document.getElementById('lng_asal').value = lng;
+                document.getElementById('nama_asal').value = 'Lokasi Saya ('+lat.toFixed(4)+')';
+                document.getElementById('display_asal').value = 'Lokasi Saya Saat Ini';
+                document.getElementById('gps-status').innerText = 'Lokasi ditemukan akurat.';
+                useBtn.classList.remove('opacity-60');
+            }, () => {
+                useBtn.classList.remove('opacity-60');
+                document.getElementById('gps-status').innerText = 'GPS tidak aktif. Ketik lokasi awal secara manual.';
+            });
+        });
+    }
+
+    // If user types origin manually, clear hidden coords
+    const originInput = document.getElementById('display_asal');
+    originInput && originInput.addEventListener('input', () => {
+        document.getElementById('lat_asal').value = '';
+        document.getElementById('lng_asal').value = '';
+        document.getElementById('nama_asal').value = originInput.value || '';
+    });
+
+    // Autocomplete tujuan
+    (function(){
+        const input = document.getElementById('input_tujuan');
+        const dropdown = document.getElementById('places_dropdown');
+        let timer = null;
+
+        input.addEventListener('input', (e) => {
+            const q = e.target.value.trim();
+            if (timer) clearTimeout(timer);
+            if (q.length < 1) { dropdown.classList.add('hidden'); toggleSubmit(); return; }
+            timer = setTimeout(() => {
+                fetch('/places?q=' + encodeURIComponent(q))
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!Array.isArray(data) || data.length === 0) {
+                            dropdown.innerHTML = '<div class="p-2 text-xs text-slate-400">Tidak ada hasil</div>';
+                            dropdown.classList.remove('hidden');
+                            toggleSubmit();
+                            return;
+                        }
+                        dropdown.innerHTML = data.map(p => `
+                            <div data-lat="${p.lat}" data-lng="${p.lng}" data-name="${p.name}" data-source="${p.source || ''}" class="cursor-pointer p-2 hover:bg-slate-50 border-b last:border-b-0 text-sm">
+                                <div class="flex justify-between items-center">
+                                    <div class="font-bold truncate">${p.name}</div>
+                                    <div class="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full ml-2">${p.source ? p.source.toUpperCase() : ''}</div>
+                                </div>
+                                <div class="text-xs text-slate-400">${p.address || ''}</div>
+                            </div>
+                        `).join('');
+                        dropdown.classList.remove('hidden');
+
+                        Array.from(dropdown.children).forEach(child => {
+                            child.addEventListener('click', () => {
+                                const lat = child.dataset.lat;
+                                const lng = child.dataset.lng;
+                                const name = child.dataset.name;
+                                const source = child.dataset.source || '';
+                                document.getElementById('lat_tujuan').value = lat;
+                                document.getElementById('lng_tujuan').value = lng;
+                                document.getElementById('input_tujuan').value = name;
+                                document.getElementById('place_source').value = source;
+                                if (source) {
+                                    document.getElementById('place_source_name').innerText = source.toUpperCase();
+                                    document.getElementById('place_source_label').classList.remove('hidden');
+                                } else {
+                                    document.getElementById('place_source_label').classList.add('hidden');
+                                }
+                                dropdown.classList.add('hidden');
+                                L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map).bindPopup(name).openPopup();
+                                toggleSubmit(true);
+                            });
+                        });
+                    })
+                    .catch(() => {
+                        dropdown.innerHTML = '<div class="p-2 text-xs text-slate-400">Terjadi kesalahan</div>';
+                        dropdown.classList.remove('hidden');
+                    });
+            }, 250);
+        });
+
+        document.addEventListener('click', (ev) => {
+            if (!dropdown.contains(ev.target) && ev.target !== input) dropdown.classList.add('hidden');
+        });
+    })();
+
+    // Toggle submit based on destination presence
+    function toggleSubmit(forceEnable=false) {
+        const submit = document.getElementById('btn-cari');
+        const tujuanVal = document.getElementById('input_tujuan').value.trim();
+        if (forceEnable || tujuanVal.length > 0) {
+            submit.disabled = false;
+            submit.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            submit.disabled = true;
+            submit.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    // Map click to pick destination
+    map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        document.getElementById('lat_tujuan').value = lat;
+        document.getElementById('lng_tujuan').value = lng;
+        document.getElementById('input_tujuan').value = 'Lokasi dipilih ('+lat+','+lng+')';
+        L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map).bindPopup('Lokasi dipilih').openPopup();
+        toggleSubmit(true);
+    });
+
+    // Show alert modal if backend set it while redirecting back
+    document.addEventListener('DOMContentLoaded', function() {
+        const msg = @json(session('alert'));
+        if (msg) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-lg w-full">
+                    <h3 class="text-lg font-black mb-2">Pemberitahuan</h3>
+                    <p class="text-sm text-slate-600 mb-4">${msg}</p>
+                    <div class="flex justify-end"><button id="alertClose" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Tutup</button></div>
+                </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('alertClose').addEventListener('click', () => modal.remove());
+        }
+        toggleSubmit();
+    });
+</script>
 @endpush
 @endsection

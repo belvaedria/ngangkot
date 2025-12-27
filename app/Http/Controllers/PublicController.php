@@ -20,7 +20,8 @@ class PublicController extends Controller
     // Halaman publik untuk melihat daftar trayek
     public function trayekIndex()
     {
-        $trayeks = Trayek::orderBy('kode_trayek')->get();
+        // Hanya tampil trayek yang "tampil_di_menu" = true
+        $trayeks = Trayek::where('tampil_di_menu', true)->orderBy('kode_trayek')->get();
         return view('public.trayek.index', compact('trayeks'));
     }
 

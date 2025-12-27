@@ -4,11 +4,8 @@
 
 @section('content')
 <div class="relative min-h-[70vh] bg-slate-50 overflow-hidden rounded-2xl">
-    <!-- Background map (soft) -->
+    <!-- PETA BACKGROUND -->
     <div id="map" class="absolute inset-0 w-full h-full z-0 filter brightness-95 opacity-90"></div>
-    
-    <!-- 1. PETA BACKGROUND -->
-    <div id="map" class="absolute inset-0 w-full h-full z-0"></div>
     
     <!-- Overlay Gradient agar teks di atas peta terbaca -->
     <div class="absolute inset-0 bg-gradient-to-b from-white/90 via-transparent to-transparent pointer-events-none h-48 z-0"></div>

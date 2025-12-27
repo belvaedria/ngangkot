@@ -56,7 +56,8 @@ Route::middleware([\App\Http\Middleware\EnsureFriendlyAuthenticated::class])->gr
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::prefix('passenger')->name('passenger.')->middleware('role:passenger')->group(function () {
-        Route::get('/home', [PasDashboard::class, 'index'])->name('dashboard');
+        // Beranda (alias Navigasi) - redirect passenger home to navigasi for single unified UX
+        Route::get('/home', function() { return redirect()->route('navigasi.index'); })->name('dashboard');
         Route::get('/riwayat', [PasRiwayat::class, 'index'])->name('riwayat.index');
         Route::post('/favorit', [PasRiwayat::class, 'storeFavorit'])->name('favorit.store');
         Route::delete('/favorit/{id}', [PasRiwayat::class, 'destroyFavorit'])->name('favorit.destroy');

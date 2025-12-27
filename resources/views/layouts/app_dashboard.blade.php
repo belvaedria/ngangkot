@@ -150,6 +150,19 @@
                 if (ev.target === modal) closeModal();
             }, { once: true });
         });
+
+        // Remove/hide any injected AI assistant widget textually matching 'Ngangkot AI Assistant' (design-only widget)
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.textContent && el.textContent.includes('Ngangkot AI Assistant')) el.remove();
+                });
+                // also hide common chat container selectors just in case
+                ['#assistant', '.assistant', '.chat', '[data-assistant]'].forEach(sel => {
+                    document.querySelectorAll(sel).forEach(e => e.remove());
+                });
+            } catch (e) { /* no-op */ }
+        });
     </script>
 
     @stack('scripts')
