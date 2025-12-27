@@ -1,174 +1,341 @@
 <?php
+
 namespace App\Http\Controllers\Passenger;
+
 use App\Http\Controllers\Controller;
-use App\Models\Trayek;
-use App\Models\Angkot; 
-use App\Models\RiwayatPenumpang;
 use Illuminate\Http\Request;
+use App\Models\Trayek;
+use App\Models\Angkot;
+use App\Models\RiwayatPenumpang;
+use App\Services\RouteFinder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class NavigasiController extends Controller
 {
-    public function index()
-    {
-        return view('passenger.navigasi.index'); // Form input A & B
-    }
-
-    // --- HELPER FUNCTION: Rumus Haversine (Hitung Jarak GPS) ---
+    // Helper: Hitung Jarak (Haversine Formula) dalam Meter
     private function hitungJarak($lat1, $lon1, $lat2, $lon2) {
-        $earthRadius = 6371000; // Meter
+        $earthRadius = 6371000; 
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
         $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
         $c = 2 * atan2(sqrt($a), sqrt(1-$a));
         return $earthRadius * $c;
     }
-    
-    // --- HELPER FUNCTION: Tarif Dinamis ---
+
+    // Helper: Estimasi Tarif
     private function hitungTarif($jarakKm) {
-        if ($jarakKm < 1) return "Rp 3.000"; // Jarak dekat
-        if ($jarakKm <= 5) return "Rp 5.000"; // Jarak sedang
-        return "Rp 7.000"; // Jarak jauh
+        if ($jarakKm < 1) return "Rp 3.000";
+        if ($jarakKm <= 5) return "Rp 5.000";
+        return "Rp 7.000";
     }
 
-    // --- LOGIC UTAMA: Cari Rute & Info Lengkap ---
+    public function index(Request $request)
+    {
+        // Pastikan panel "Trayek Aktif" memiliki data saat view di-render.
+        $trayeks = \App\Models\Trayek::all();
+        // Optional prefill when coming from favorites (query params).
+        $prefill = $request->only(['lat_asal','lng_asal','nama_asal','lat_tujuan','lng_tujuan','nama_tujuan','asal_coords','tujuan_coords']);
+        // If client passed coords as "lat,lng" pairs (asal_coords / tujuan_coords), split them for the form.
+        if (!empty($prefill['asal_coords']) && empty($prefill['lat_asal'])) {
+            [$plat, $plng] = explode(',', $prefill['asal_coords']) + [null,null];
+            $prefill['lat_asal'] = $plat ?? null;
+            $prefill['lng_asal'] = $plng ?? null;
+        }
+        if (!empty($prefill['tujuan_coords']) && empty($prefill['lat_tujuan'])) {
+            [$dlat, $dlng] = explode(',', $prefill['tujuan_coords']) + [null,null];
+            $prefill['lat_tujuan'] = $dlat ?? null;
+            $prefill['lng_tujuan'] = $dlng ?? null;
+        }
+        return view('passenger.navigasi.index', compact('trayeks','prefill'));
+    }
+
+    /**
+     * LOGIKA INTI PENCARIAN RUTE
+     * Menerima Lat/Long Asal & Tujuan -> Mencocokkan dengan JSON Trayek di Database
+     */
     public function searchRoute(Request $request)
     {
-        // 1. VALIDASI INPUT (Wajib Koordinat)
+        // 1. Validasi: Pastikan Frontend mengirim Koordinat
         $request->validate([
             'lat_asal' => 'required|numeric',
             'lng_asal' => 'required|numeric',
             'lat_tujuan' => 'required|numeric',
             'lng_tujuan' => 'required|numeric',
+            'nama_asal' => 'required',
+            'nama_tujuan' => 'required'
         ]);
 
         $latAsal = $request->lat_asal;
         $lngAsal = $request->lng_asal;
         $latTujuan = $request->lat_tujuan;
         $lngTujuan = $request->lng_tujuan;
-        
-        $radius = 500; // Toleransi jarak jalan kaki ke jalur (500 meter)
-        $kecepatanAngkot = 25; // km/jam (Asumsi rata-rata dalam kota)
+
+        // 1) First try: flexible RouteFinder (multi-transfer, several variants)
+        $variants = [];
+        try {
+            $finder = new RouteFinder();
+            $variants = $finder->findVariants($latAsal, $lngAsal, $latTujuan, $lngTujuan, 700);
+        } catch (\Throwable $e) {
+            // silently fallback to old logic below
+            $variants = [];
+        }
+
+        if (!empty($variants)) {
+            // Simpan Riwayat jika user login
+            if (Auth::check()) {
+                RiwayatPenumpang::create([
+                    'user_id' => Auth::id(),
+                    'asal_nama' => $request->nama_asal ?? 'Lokasi Saya',
+                    'tujuan_nama' => $request->nama_tujuan,
+                    'asal_coords' => "$latAsal,$lngAsal",
+                    'tujuan_coords' => "$latTujuan,$lngTujuan",
+                    'rute_hasil_json' => json_encode($variants)
+                ]);
+            }
+
+            return view('passenger.navigasi.result', ['trayeks' => $variants]);
+        }
+
+        // 2) Fallback: original simple matching (single-trayek)
+        $radius = 700; // Toleransi jarak jalan kaki (meter) ke jalur angkot
         $hasilPencarian = [];
         
-        $allTrayek = Trayek::all(); // Ambil semua trayek (termasuk yg hidden di menu)
+        // Ambil semua trayek dari database
+        $allTrayek = Trayek::all();
 
         foreach ($allTrayek as $trayek) {
+            // Decode Rute JSON (Garis jalan angkot)
             $geoJson = json_decode($trayek->rute_json, true);
+            
+            // Skip jika data rute rusak/kosong
             if (!isset($geoJson['features'][0]['geometry']['coordinates'])) continue;
 
             $coords = $geoJson['features'][0]['geometry']['coordinates'];
-            $passStart = false; 
-            $passEnd = false;
             
-            // Variabel untuk nyimpen koordinat titik naik (boarding) & turun (dropoff)
             $titikNaik = null;
             $titikTurun = null;
+            $jarakKeTitikNaik = 999999;
+            $jarakDariTitikTurun = 999999;
 
-            // 2. Cek apakah trayek ini lewat Asal & Tujuan?
-            // (Logika Radius Haversine menjamin pencarian berdasarkan POSISI, bukan NAMA JALAN)
+            // 2. CEK LOGIKA: Apakah trayek ini lewat dekat Asal DAN dekat Tujuan?
             foreach ($coords as $point) {
-                $pointLat = $point[1]; $pointLng = $point[0];
-                
-                // Cek dekat titik asal
-                if (!$passStart && $this->hitungJarak($latAsal, $lngAsal, $pointLat, $pointLng) <= $radius) {
-                    $passStart = true;
-                    $titikNaik = [$pointLat, $pointLng];
+                // GeoJSON biasanya [Longitude, Latitude]
+                $pointLat = $point[1]; 
+                $pointLng = $point[0];
+
+                // Cek jarak titik ini ke Posisi Awal User
+                $jarakAsal = $this->hitungJarak($latAsal, $lngAsal, $pointLat, $pointLng);
+                if ($jarakAsal <= $radius) {
+                    // Simpan titik naik terdekat
+                    if ($jarakAsal < $jarakKeTitikNaik) {
+                        $jarakKeTitikNaik = $jarakAsal;
+                        $titikNaik = [$pointLat, $pointLng];
+                    }
                 }
-                
-                // Cek dekat titik tujuan (Hanya jika titik awal sudah ketemu -> Menjamin Arah Maju)
-                if ($passStart && !$passEnd && $this->hitungJarak($latTujuan, $lngTujuan, $pointLat, $pointLng) <= $radius) {
-                    $passEnd = true;
-                    $titikTurun = [$pointLat, $pointLng];
-                    break; // Hemat looping
+
+                // Cek jarak titik ini ke Posisi Tujuan User
+                // Hanya cek jika titik naik sudah ditemukan (Logic arah maju)
+                if ($titikNaik) {
+                    $jarakTujuan = $this->hitungJarak($latTujuan, $lngTujuan, $pointLat, $pointLng);
+                    if ($jarakTujuan <= $radius) {
+                        if ($jarakTujuan < $jarakDariTitikTurun) {
+                            $jarakDariTitikTurun = $jarakTujuan;
+                            $titikTurun = [$pointLat, $pointLng];
+                        }
+                    }
                 }
             }
 
-            // 3. Kalo MATCH, hitung informasi detailnya
-            if ($passStart && $passEnd) {
+            // 3. JIKA RUTE COCOK (Ada titik naik & titik turun)
+            if ($titikNaik && $titikTurun) {
                 
-                // A. Hitung Jarak Tempuh Angkot
-                $jarakPerjalanan = $this->hitungJarak($titikNaik[0], $titikNaik[1], $titikTurun[0], $titikTurun[1]); 
-                $jarakKM = $jarakPerjalanan / 1000;
+                // Hitung total jarak angkot (garis lurus antar titik - simplifikasi)
+                $jarakAngkot = $this->hitungJarak($titikNaik[0], $titikNaik[1], $titikTurun[0], $titikTurun[1]);
+                $jarakKm = $jarakAngkot / 1000;
+                
+                // Hitung estimasi
+                $waktuAngkot = ceil(($jarakKm / 20) * 60); // Asumsi 20km/jam
+                $waktuJalanKaki = ceil(($jarakKeTitikNaik + $jarakDariTitikTurun) / 50); // 50m/menit
+                $totalWaktu = $waktuAngkot + $waktuJalanKaki;
 
-                // B. Hitung Tarif & Waktu
-                $tarif = $this->hitungTarif($jarakKM);
-                $waktuTempuh = ceil(($jarakKM / $kecepatanAngkot) * 60); 
-
-                // C. Cari Angkot Terdekat (Real-time!)
-                $angkotTerdekat = Angkot::where('trayek_id', $trayek->id)
+                // Cari Angkot Realtime (Yang is_active = true di DB)
+                $angkotAktif = Angkot::where('trayek_id', $trayek->id)
                                     ->where('is_active', true)
-                                    ->get()
-                                    ->map(function($angkot) use ($latAsal, $lngAsal) {
-                                        // Hitung jarak angkot ke User
-                                        $jarak = $this->hitungJarak($latAsal, $lngAsal, $angkot->lat_sekarang, $angkot->lng_sekarang);
-                                        $angkot->jarak_ke_user = $jarak;
-                                        return $angkot;
-                                    })
-                                    ->sortBy('jarak_ke_user')
-                                    ->first();
+                                    ->get();
+                
+                // Cari yang paling dekat dengan titik naik
+                $angkotTerdekat = $angkotAktif->map(function($a) use ($titikNaik) {
+                    $a->jarak_ke_pickup = $this->hitungJarak($titikNaik[0], $titikNaik[1], $a->lat_sekarang, $a->lng_sekarang);
+                    return $a;
+                })->sortBy('jarak_ke_pickup')->first();
 
-                // Format info angkot terdekat
-                $infoAngkot = "Tidak ada angkot aktif";
-                if ($angkotTerdekat) {
-                    $waktuTunggu = ceil(($angkotTerdekat->jarak_ke_user / 1000 / $kecepatanAngkot) * 60);
-                    $infoAngkot = "Angkot {$angkotTerdekat->plat_nomor} berjarak " . round($angkotTerdekat->jarak_ke_user) . "m ({$waktuTunggu} menit lagi)";
-                }
+                $infoAngkot = $angkotTerdekat 
+                    ? "Angkot {$angkotTerdekat->plat_nomor} berjarak " . round($angkotTerdekat->jarak_ke_pickup) . "m dari titik naik."
+                    : "Tidak ada armada aktif saat ini.";
 
-                // D. Susun Data STEPS (Ini yang dibaca View untuk Accordion)
-                $jarakJalanKakiAwal = $this->hitungJarak($latAsal, $lngAsal, $titikNaik[0], $titikNaik[1]);
-                $jarakJalanKakiAkhir = $this->hitungJarak($titikTurun[0], $titikTurun[1], $latTujuan, $lngTujuan);
-
+                // Siapkan Data untuk View
+                $trayek->info_tarif = $this->hitungTarif($jarakKm);
+                $trayek->info_waktu = $totalWaktu . " min";
+                $trayek->info_jarak = round($jarakKm, 1) . " km";
+                $trayek->info_angkot = $infoAngkot;
+                
+                // Struktur Detail Perjalanan (Steps)
                 $trayek->rute_detail = [
                     [
                         'jenis' => 'jalan',
-                        'instruksi' => 'Jalan kaki ke jalur lintasan',
-                        'detail' => round($jarakJalanKakiAwal) . ' meter',
-                        'waktu' => ceil($jarakJalanKakiAwal / 80) . ' menit' // Asumsi jalan kaki 80m/menit
+                        'instruksi' => 'Jalan kaki ke titik jemput',
+                        'detail' => round($jarakKeTitikNaik) . " meter",
+                        'waktu' => ceil($jarakKeTitikNaik / 50) . " min"
                     ],
                     [
                         'jenis' => 'angkot',
-                        'kode' => $trayek->kode_trayek,
-                        'nama' => $trayek->nama_trayek,
+                        'instruksi' => "Naik {$trayek->nama_trayek} ({$trayek->kode_trayek})",
+                        'detail' => "Turun di dekat tujuan.",
                         'warna' => $trayek->warna_angkot,
-                        'instruksi' => "Naik Angkot {$trayek->kode_trayek}",
-                        'detail' => "Jarak tempuh: " . round($jarakKM, 1) . " Km",
-                        'tarif' => $tarif,
-                        'live_info' => $infoAngkot
+                        'waktu' => $waktuAngkot . " min"
                     ],
                     [
                         'jenis' => 'turun',
-                        'instruksi' => 'Turun di dekat tujuan',
-                        'detail' => round($jarakJalanKakiAkhir) . ' meter jalan kaki ke lokasi',
-                        'waktu' => ceil($jarakJalanKakiAkhir / 80) . ' menit'
+                        'instruksi' => 'Jalan kaki ke tujuan',
+                        'detail' => round($jarakDariTitikTurun) . " meter",
+                        'waktu' => ceil($jarakDariTitikTurun / 50) . " min"
                     ]
                 ];
-
-                // Inject data summary buat Card Header
-                $trayek->info_tarif = $tarif;
-                $trayek->info_waktu = ($waktuTempuh + ceil($jarakJalanKakiAwal/80) + ceil($jarakJalanKakiAkhir/80)) . " Menit";
-                $trayek->info_angkot = $infoAngkot;
-                $trayek->total_skor = $waktuTempuh; // Buat sorting
 
                 $hasilPencarian[] = $trayek;
             }
         }
-        
-        // 4. Sorting (Tercepat paling atas)
-        usort($hasilPencarian, function($a, $b) {
-            return $a->total_skor <=> $b->total_skor;
+
+        // Simpan Riwayat jika user login
+        if (Auth::check()) {
+            RiwayatPenumpang::create([
+                'user_id' => Auth::id(),
+                'asal_nama' => $request->nama_asal ?? 'Lokasi Saya',
+                'tujuan_nama' => $request->nama_tujuan,
+                'asal_coords' => "$latAsal,$lngAsal",
+                'tujuan_coords' => "$latTujuan,$lngTujuan",
+                'rute_hasil_json' => json_encode($hasilPencarian)
+            ]);
+        }
+
+        $message = null;
+        if (empty($hasilPencarian)) {
+            $message = 'Rute menuju tujuan belum tersedia. Coba titik asal/tujuan lain atau cek trayek terdekat.';
+        }
+
+        // Return ke View Hasil
+        return view('passenger.navigasi.result', ['trayeks' => $hasilPencarian, 'message' => $message]);
+    }
+
+    /**
+     * Search places using Mapbox (if configured) with a fallback to Nominatim.
+     * Results are cached briefly to reduce external API calls.
+     */
+    public function places(Request $request)
+    {
+        $q = $request->query('q', '');
+        $qTrim = trim($q);
+        if (strlen($qTrim) < 1) {
+            return response()->json([]);
+        }
+
+        // Try Mapbox first if user configured an access token
+        $mapboxToken = env('MAPBOX_ACCESS_TOKEN');
+        if ($mapboxToken) {
+            $cacheKey = 'places:mapbox:' . md5($qTrim);
+            $results = Cache::remember($cacheKey, 60, function() use ($qTrim, $mapboxToken) {
+                $url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' . urlencode($qTrim) . '.json';
+                $resp = Http::get($url, [
+                    'access_token' => $mapboxToken,
+                    'limit' => 12,
+                    'autocomplete' => 'true',
+                    'types' => 'place,locality,neighborhood,poi,address'
+                ]);
+                if (!$resp->successful()) return [];
+                return $resp->json();
+            });
+
+            $out = [];
+            if (isset($results['features']) && is_array($results['features'])) {
+                foreach ($results['features'] as $f) {
+                    $center = $f['center'] ?? null; // [lng, lat]
+                    $out[] = [
+                        'name' => $f['place_name'] ?? ($f['text'] ?? ''),
+                        'lat' => $center ? $center[1] : null,
+                        'lng' => $center ? $center[0] : null,
+                        'address' => $f['place_name'] ?? '',
+                        'type' => isset($f['place_type']) ? implode(',', $f['place_type']) : null,
+                        'source' => 'mapbox'
+                    ];
+                }
+
+                if (!empty($out)) {
+                    return response()->json($out);
+                }
+                // If Mapbox returned empty results, try LocationIQ if configured
+                $locationIqKey = env('LOCATIONIQ_ACCESS_TOKEN');
+                if ($locationIqKey) {
+                    $cacheKey = 'places:locationiq:' . md5($qTrim);
+                    $liResults = Cache::remember($cacheKey, 60, function() use ($qTrim, $locationIqKey) {
+                        $resp = Http::get('https://us1.locationiq.com/v1/search.php', [
+                            'key' => $locationIqKey,
+                            'q' => $qTrim,
+                            'format' => 'json',
+                            'limit' => 12,
+                        ]);
+                        if (!$resp->successful()) return [];
+                        return $resp->json();
+                    });
+
+                    if (is_array($liResults) && !empty($liResults)) {
+                        $out = [];
+                        foreach ($liResults as $r) {
+                            $out[] = [
+                                'name' => $r['display_name'] ?? '',
+                                'lat' => $r['lat'] ?? null,
+                                'lng' => $r['lon'] ?? null,
+                                'address' => $r['display_name'] ?? '',
+                                'type' => $r['type'] ?? null,
+                                'source' => 'locationiq'
+                            ];
+                        }
+
+                        if (!empty($out)) {
+                            return response()->json($out);
+                        }
+                    }
+                }
+                // otherwise fallthrough to Nominatim
+            }
+        }
+
+        // Fallback: Nominatim
+        $cacheKey = 'places:nominatim:' . md5($qTrim);
+        $results = Cache::remember($cacheKey, 60, function() use ($qTrim) {
+            $resp = Http::withHeaders(['User-Agent' => 'pabw-ngangkot/1.0'])->get('https://nominatim.openstreetmap.org/search', [
+                'q' => $qTrim,
+                'format' => 'jsonv2',
+                'addressdetails' => 1,
+                'limit' => 12,
+            ]);
+            if (!$resp->successful()) return [];
+            return $resp->json();
         });
 
-        // 5. Simpan History
-        RiwayatPenumpang::create([
-            'user_id' => Auth::id(),
-            'asal_nama' => $request->nama_asal,
-            'tujuan_nama' => $request->nama_tujuan,
-            'asal_coords' => "$latAsal,$lngAsal",
-            'tujuan_coords' => "$latTujuan,$lngTujuan",
-            'rute_hasil_json' => json_encode($hasilPencarian)
-        ]);
+        $out = [];
+        foreach ($results as $r) {
+            $out[] = [
+                'name' => $r['display_name'] ?? ($r['name'] ?? ''),
+                'lat' => $r['lat'] ?? null,
+                'lng' => $r['lon'] ?? ($r['lng'] ?? null),
+                'address' => $r['display_name'] ?? '',
+                'type' => $r['type'] ?? null,
+                'source' => 'nominatim'
+            ];
+        }
 
-        return view('passenger.navigasi.result', ['trayeks' => $hasilPencarian]);
+        return response()->json($out);
     }
 }

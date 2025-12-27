@@ -1,11 +1,15 @@
 <?php
-
 namespace App\Http\Controllers\Admin;
-
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Trayek;
 
 class DashboardController extends Controller
 {
-    //
+    public function index()
+    {
+        $trayeks = Trayek::all(); 
+        
+        return view('passenger.dashboard.index', compact('trayeks'));
+    }
 }

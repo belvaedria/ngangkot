@@ -84,7 +84,6 @@
         </div>
     </section>
 
-    <!-- FITUR KAMI (Sesuai 3 Poin Use Case Utama Kamu - Public Access) -->
     <section id="fitur" class="py-24 bg-white relative">
         <div class="max-w-7xl mx-auto px-6 md:px-12">
             <div class="text-center max-w-3xl mx-auto mb-20">

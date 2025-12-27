@@ -16,4 +16,18 @@ class PublicController extends Controller
                         ->get();
         return view('welcome', compact('trayeks'));
     }
+
+    // Halaman publik untuk melihat daftar trayek
+    public function trayekIndex()
+    {
+        $trayeks = Trayek::orderBy('kode_trayek')->get();
+        return view('public.trayek.index', compact('trayeks'));
+    }
+
+    // Tampilkan detail trayek berdasarkan kode (public)
+    public function show($kode)
+    {
+        $trayek = Trayek::where('kode_trayek', $kode)->firstOrFail();
+        return view('public.trayek.show', compact('trayek'));
+    }
 }

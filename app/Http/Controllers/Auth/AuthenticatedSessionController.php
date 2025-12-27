@@ -16,6 +16,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
+        // Jika ada parameter redirect dari modal, simpan sebagai intended URL agar setelah login
+        // pengguna diarahkan kembali ke halaman yang ingin diakses.
+        if (request()->has('redirect')) {
+            session(['url.intended' => request()->query('redirect')]);
+        }
         return view('auth.login');
     }
 
