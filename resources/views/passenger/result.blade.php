@@ -92,7 +92,7 @@
                     <div x-show="open" x-collapse class="bg-slate-50/50 border-t border-slate-100 p-6">
                         
                         <!-- Status Angkot Terdekat -->
-                        <div class="flex items-start gap-4 p-4 bg-white rounded-2xl border border-blue-100 shadow-sm mb-8 relative overflow-hidden">
+                        <div class="flex items-start gap-4 p-4 bg-white rounded-2xl border border-blue-100 shadow-sm mb-4 relative overflow-hidden">
                             <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                             <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
                                 <i data-lucide="rss" class="w-5 h-5 animate-pulse"></i>
@@ -100,6 +100,9 @@
                             <div>
                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Info Armada</p>
                                 <p class="text-sm font-bold text-slate-800 leading-snug">{{ $trayek->info_angkot }}</p>
+                                @if(isset($trayek->angkot_locations) && $trayek->angkot_locations->count())
+                                    <p class="text-[11px] text-slate-500 mt-1">{{ $trayek->angkot_locations->count() }} armada aktif terlihat di peta.</p>
+                                @endif
                             </div>
                         </div>
 
@@ -172,16 +175,20 @@
         { 
             id: {{ $loop->index }}, 
             color: '{{ $t->warna_angkot }}', 
-            json: {!! $t->rute_json !!} // JSON koordinat garis
+            json: {!! $t->rute_json !!}, // JSON koordinat garis
+            angkots: @json($t->angkot_locations ?? [])
         },
         @endforeach
     ];
 
     let currentLayer = null;
+    let angkotMarkers = [];
 
     // 3. Fungsi Gambar Garis (Dipanggil saat Accordion dibuka)
     function showRouteOnMap(index) {
         if (currentLayer) map.removeLayer(currentLayer);
+        angkotMarkers.forEach(m => map.removeLayer(m));
+        angkotMarkers = [];
         
         const data = ruteData[index];
         
@@ -200,6 +207,19 @@
         // Zoom Otomatis ke Rute
         // Padding besar di bawah biar garisnya gak ketutup panel
         map.fitBounds(currentLayer.getBounds(), { paddingBottomRight: [0, 400], paddingTopLeft: [0, 100] });
+
+        // Tampilkan armada aktif di sekitar trayek
+        (data.angkots || []).forEach(a => {
+            if (a.lat && a.lng) {
+                const marker = L.marker([a.lat, a.lng], {
+                    icon: L.divIcon({
+                        className: 'angkot-marker',
+                        html: `<div style="background:${data.color};color:white;padding:6px 8px;border-radius:12px;font-weight:800;font-size:10px;box-shadow:0 6px 18px rgba(0,0,0,0.15);">🚐 ${a.plat_nomor}</div>`
+                    })
+                }).addTo(map);
+                angkotMarkers.push(marker);
+            }
+        });
     }
 
     // Tampilkan rute pertama secara otomatis jika ada

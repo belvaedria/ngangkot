@@ -1,15 +1,27 @@
 <?php
-namespace App\Http\Controllers\Passenger;
+
+namespace App\Http\Controllers\Admin;
+
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Trayek;
+use App\Models\Angkot;
+use App\Models\Laporan;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $trayeks = Trayek::all(); 
-        
-        return view('passenger.dashboard.index', compact('trayeks'));
+        $totalTrayek = Trayek::count();
+        $totalAngkot = Angkot::count();
+        $laporanPending = Laporan::where('status', 'pending')->count();
+        $totalPengguna = User::count();
+
+        return view('admin.dashboard', compact(
+            'totalTrayek',
+            'totalAngkot',
+            'laporanPending',
+            'totalPengguna'
+        ));
     }
 }
