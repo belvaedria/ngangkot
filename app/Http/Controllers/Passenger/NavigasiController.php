@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Trayek;
 use App\Models\Angkot;
 use App\Models\RiwayatPenumpang;
+use App\Models\RuteFavorit;
 use Illuminate\Support\Facades\Auth;
 
 class NavigasiController extends Controller
@@ -30,7 +31,15 @@ class NavigasiController extends Controller
 
     public function index()
     {
-        return view('passenger.dashboard');
+        $trayeks = Trayek::where('tampil_di_menu', true)->get();
+        $riwayat = Auth::check()
+            ? RiwayatPenumpang::where('user_id', Auth::id())->latest()->take(5)->get()
+            : collect();
+        $favorit = Auth::check()
+            ? RuteFavorit::where('user_id', Auth::id())->latest()->take(5)->get()
+            : collect();
+
+        return view('passenger.dashboard', compact('trayeks', 'riwayat', 'favorit'));
     }
 
     /**
@@ -129,6 +138,15 @@ class NavigasiController extends Controller
                 $infoAngkot = $angkotTerdekat 
                     ? "Angkot {$angkotTerdekat->plat_nomor} berjarak " . round($angkotTerdekat->jarak_ke_pickup) . "m dari titik naik."
                     : "Tidak ada armada aktif saat ini.";
+
+                // Simpan armada aktif untuk ditampilkan di peta
+                $trayek->angkot_locations = $angkotAktif->map(function($a) {
+                    return [
+                        'plat_nomor' => $a->plat_nomor,
+                        'lat' => $a->lat_sekarang,
+                        'lng' => $a->lng_sekarang,
+                    ];
+                })->values();
 
                 // Siapkan Data untuk View
                 $trayek->info_tarif = $this->hitungTarif($jarakKm);
