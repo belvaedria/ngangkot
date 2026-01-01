@@ -16,4 +16,10 @@ class PublicController extends Controller
                         ->get();
         return view('welcome', compact('trayeks'));
     }
+
+    public function trayekIndex()
+    {
+        return view('passenger.trayek.index');
+    }
+
 }

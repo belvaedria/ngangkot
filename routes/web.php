@@ -25,6 +25,9 @@ use App\Http\Controllers\Admin\LaporanController as AdmLaporan;
 use App\Http\Controllers\Admin\ArtikelController as AdmArtikel;
 use App\Http\Controllers\Admin\FaqController as AdmFaq;
 
+use App\Http\Controllers\API\TrayekController;
+
+
 /*
 |--------------------------------------------------------------------------
 | PUBLIC (Tanpa Login)
@@ -34,8 +37,12 @@ use App\Http\Controllers\Admin\FaqController as AdmFaq;
 // Welcome / landing
 Route::get('/', [PublicController::class, 'index'])->name('home');
 
-// (Opsional) public trayek lama kamu yang pakai kode — boleh dipertahankan
-Route::get('/trayek/{kode}', [PublicController::class, 'show'])->name('trayek.show');
+Route::get('/api/trayeks', [TrayekController::class, 'index']);
+Route::get('/api/trayeks/{kode}', [TrayekController::class, 'show']);
+
+Route::get('/trayek/{kode}', [PublicController::class, 'trayekIndex'])->name('passenger.trayek');
+Route::get('/passenger/trayek', [PublicController::class, 'trayekIndex'])->name('passenger.trayek');
+
 
 // Navigasi = dashboard → jadi /navigasi cuma redirect (biar gak ada 2 konsep)
 Route::get('/navigasi', fn () => redirect()->route('passenger.dashboard'))
@@ -43,6 +50,8 @@ Route::get('/navigasi', fn () => redirect()->route('passenger.dashboard'))
 
 // Search route tetap public (guest boleh cari rute)
 Route::post('/navigasi/cari', [PasNavigasi::class, 'searchRoute'])->name('navigasi.search');
+Route::get('/navigasi/cari', fn () => redirect()->route('passenger.dashboard'));
+
 
 /*
 |--------------------------------------------------------------------------
@@ -59,6 +68,7 @@ Route::prefix('passenger')->name('passenger.')->group(function () {
     // Sesuaikan controller/method kamu: bisa PublicController atau controller passenger.
     Route::get('/trayek', [PublicController::class, 'trayekIndex'])->name('trayek.index');
     Route::get('/edukasi', [PasEdukasi::class, 'index'])->name('edukasi.index');
+    
 });
 
 /*

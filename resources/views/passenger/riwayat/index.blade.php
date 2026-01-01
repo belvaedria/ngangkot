@@ -9,8 +9,7 @@
         <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <p class="text-xs font-bold text-slate-500 uppercase">Riwayat Pencarian</p>
-                    <h2 class="text-xl font-black text-slate-900">20 rute terakhir</h2>
+                    <h2 class="text-xl font-black text-slate-900">Riwayat Pencarian</h2>
                 </div>
             </div>
             <div class="space-y-3 max-h-[520px] overflow-y-auto custom-scroll pr-1">
@@ -41,8 +40,7 @@
         <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <p class="text-xs font-bold text-slate-500 uppercase">Rute Favorit</p>
-                    <h2 class="text-xl font-black text-slate-900">Cepat pakai lagi</h2>
+                    <h2 class="text-xl font-black text-slate-900">Rute Favorit</h2>
                 </div>
             </div>
             <div class="space-y-3 max-h-[520px] overflow-y-auto custom-scroll pr-1">

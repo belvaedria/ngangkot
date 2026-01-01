@@ -11,6 +11,8 @@ use App\Models\Angkot;
 use App\Models\RiwayatPenumpang;
 use App\Models\RuteFavorit;
 
+use App\Services\RouteFinder;
+
 class NavigasiController extends Controller
 {
     /**
@@ -80,7 +82,7 @@ class NavigasiController extends Controller
     /**
      * Cari rute (direct route 1 trayek) + tampilkan hasilnya di dashboard sidebar
      */
-    public function searchRoute(Request $request)
+    public function searchRoute(Request $request, RouteFinder $routeFinder)
     {
         // 1) Validasi input koordinat (frontend sudah isi hidden lat/lng)
         $request->validate([
@@ -104,130 +106,17 @@ class NavigasiController extends Controller
 
         $allTrayek = Trayek::all();
 
-        foreach ($allTrayek as $trayek) {
-            $geoJson = json_decode($trayek->rute_json, true);
-            if (!isset($geoJson['features'][0]['geometry']['coordinates'])) continue;
+        $variants = $routeFinder->findVariants(
+            latAsal: $latAsal,
+            lngAsal: $lngAsal,
+            latTujuan: $latTujuan,
+            lngTujuan: $lngTujuan,
+            walkRadius: 700,
+            maxVariants: 6
+        );
 
-            $coords = $geoJson['features'][0]['geometry']['coordinates'];
+        $hasilRute = collect($variants);
 
-            $titikNaik = null;
-            $titikTurun = null;
-
-            $jarakKeTitikNaik = INF;
-            $jarakDariTitikTurun = INF;
-
-            // Cari kandidat titik naik + titik turun (sederhana: cari titik terdekat dari asal, lalu cari titik terdekat dari tujuan setelah titik naik ditemukan)
-            foreach ($coords as $point) {
-                // GeoJSON: [lng, lat]
-                $pointLng = $point[0];
-                $pointLat = $point[1];
-
-                // Jarak dari asal ke titik ini
-                $jarakAsal = $this->hitungJarak($latAsal, $lngAsal, $pointLat, $pointLng);
-
-                if ($jarakAsal <= $radius) {
-                    if ($jarakAsal < $jarakKeTitikNaik) {
-                        $jarakKeTitikNaik = $jarakAsal;
-                        $titikNaik = [$pointLat, $pointLng];
-                    }
-                }
-
-                // Jarak dari tujuan ke titik ini (boleh dicek kalau titik naik sudah ketemu)
-                if ($titikNaik) {
-                    $jarakTujuan = $this->hitungJarak($latTujuan, $lngTujuan, $pointLat, $pointLng);
-                    if ($jarakTujuan <= $radius) {
-                        if ($jarakTujuan < $jarakDariTitikTurun) {
-                            $jarakDariTitikTurun = $jarakTujuan;
-                            $titikTurun = [$pointLat, $pointLng];
-                        }
-                    }
-                }
-            }
-
-            if (!$titikNaik || !$titikTurun) {
-                continue;
-            }
-
-            // 3) Estimasi jarak angkot (simplifikasi: garis lurus naik->turun)
-            $jarakAngkotMeter = $this->hitungJarak($titikNaik[0], $titikNaik[1], $titikTurun[0], $titikTurun[1]);
-            $jarakAngkotKm = $jarakAngkotMeter / 1000;
-
-            // Estimasi waktu:
-            // - angkot: asumsi 20 km/jam
-            $waktuAngkotMenit = (int) ceil(($jarakAngkotKm / 20) * 60);
-            // - jalan kaki: 50 m/menit (≈ 3 km/jam)
-            $waktuJalan1 = (int) ceil($jarakKeTitikNaik / 50);
-            $waktuJalan2 = (int) ceil($jarakDariTitikTurun / 50);
-
-            $totalWaktu = $waktuAngkotMenit + $waktuJalan1 + $waktuJalan2;
-
-            // 4) Tarif per sekali naik angkot (direct route = 1x naik)
-            $tarifSegmen = $this->hitungTarifPerAngkot($jarakAngkotKm);
-            $tarifTotal = $tarifSegmen; // kalau nanti multi-angkot, tinggal dijumlahkan
-
-            // 5) Angkot realtime (aktif) + ambil lokasi untuk map
-            $angkotAktif = Angkot::where('trayek_id', $trayek->id)
-                ->where('is_active', true)
-                ->get();
-
-            $angkotTerdekat = null;
-            foreach ($angkotAktif as $a) {
-                if ($a->lat_sekarang === null || $a->lng_sekarang === null) continue;
-
-                $a->jarak_ke_pickup = $this->hitungJarak($titikNaik[0], $titikNaik[1], $a->lat_sekarang, $a->lng_sekarang);
-                if (!$angkotTerdekat || $a->jarak_ke_pickup < $angkotTerdekat->jarak_ke_pickup) {
-                    $angkotTerdekat = $a;
-                }
-            }
-
-            $trayek->info_angkot = $angkotTerdekat
-                ? "Angkot terdekat {$angkotTerdekat->plat_nomor} ± " . round($angkotTerdekat->jarak_ke_pickup) . " m dari titik naik."
-                : "Tidak ada armada aktif saat ini.";
-
-            $trayek->angkot_locations = $angkotAktif->map(function ($a) {
-                return [
-                    'plat_nomor' => $a->plat_nomor,
-                    'lat' => $a->lat_sekarang,
-                    'lng' => $a->lng_sekarang,
-                ];
-            })->values();
-
-            // 6) Info ringkas untuk UI
-            $trayek->info_waktu = $totalWaktu . " min";
-            $trayek->info_jarak = round($jarakAngkotKm, 1) . " km";
-
-            // Penting: simpan angka tarif juga (biar bisa dijumlah di masa depan)
-            $trayek->tarif_total = $tarifTotal;
-            $trayek->tarif_total_label = $this->formatRupiah($tarifTotal);
-
-            // 7) Detail langkah (siap untuk sidebar accordion)
-            $trayek->rute_detail = [
-                [
-                    'jenis' => 'jalan',
-                    'instruksi' => 'Jalan kaki ke titik jemput',
-                    'detail' => round($jarakKeTitikNaik) . " meter",
-                    'waktu' => $waktuJalan1 . " min",
-                ],
-                [
-                    'jenis' => 'angkot',
-                    'instruksi' => "Naik {$trayek->nama_trayek} ({$trayek->kode_trayek})",
-                    'detail' => "Turun di dekat tujuan.",
-                    'warna' => $trayek->warna_angkot,
-                    'waktu' => $waktuAngkotMenit . " min",
-                    // tarif per sekali naik
-                    'tarif' => $tarifSegmen,
-                    'tarif_label' => $this->formatRupiah($tarifSegmen),
-                ],
-                [
-                    'jenis' => 'jalan',
-                    'instruksi' => 'Jalan kaki dari titik turun ke tujuan',
-                    'detail' => round($jarakDariTitikTurun) . " meter",
-                    'waktu' => $waktuJalan2 . " min",
-                ],
-            ];
-
-            $hasilPencarian[] = $trayek;
-        }
 
         // Sort hasil: waktu tercepat dulu, lalu tarif termurah
         usort($hasilPencarian, function ($a, $b) {
@@ -241,7 +130,6 @@ class NavigasiController extends Controller
             return $ta <=> $tb;
         });
 
-        // Simpan riwayat hanya kalau login (guest: tidak disimpan)
         if (Auth::check()) {
             RiwayatPenumpang::create([
                 'user_id' => Auth::id(),
@@ -249,17 +137,19 @@ class NavigasiController extends Controller
                 'tujuan_nama' => $request->nama_tujuan ?? 'Tujuan',
                 'asal_coords' => "$latAsal,$lngAsal",
                 'tujuan_coords' => "$latTujuan,$lngTujuan",
-                'rute_hasil_json' => json_encode($hasilPencarian),
+                'rute_hasil_json' => json_encode($hasilRute),
             ]);
         }
+
 
         // Render dashboard yang sama, tapi dengan hasil di sidebar
         $base = $this->baseDashboardData();
 
-        return view('passenger.dashboard', $base + [
-            'hasilRute' => $hasilPencarian,
+        return view('passenger.dashboard', $this->baseDashboardData() + [
+            'hasilRute' => $hasilRute,
             'asal' => $request->nama_asal ?? 'Lokasi Saya',
             'tujuan' => $request->nama_tujuan ?? '',
         ]);
+
     }
 }
