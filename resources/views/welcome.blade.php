@@ -96,7 +96,7 @@
 
             <div class="grid md:grid-cols-3 gap-8">
                 <!-- Fitur 1: Navigasi (Cari Rute) -->
-                <a href="{{ route('navigasi.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
+                <a href="{{ route('passenger.dashboard') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
                     <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
                         <i data-lucide="map" class="w-8 h-8"></i>
                     </div>
@@ -108,7 +108,7 @@
                 </a>
 
                 <!-- Fitur 2: Lihat Trayek -->
-                <a href="{{ route('trayek.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
+                <a href="{{ route('passenger.trayek.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
                     <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
                         <i data-lucide="signpost" class="w-8 h-8"></i>
                     </div>
@@ -120,7 +120,7 @@
                 </a>
                 
                 <!-- Fitur 3: Edukasi -->
-                <a href="{{ route('edukasi.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
+                <a href="{{ route('passenger.edukasi.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
                     <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
                         <i data-lucide="book-open" class="w-8 h-8"></i>
                     </div>

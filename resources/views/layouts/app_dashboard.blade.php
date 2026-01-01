@@ -31,7 +31,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- 4. Alpine.js -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <!-- 5. Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -43,11 +43,15 @@
         .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden bg-slate-50 text-slate-900" x-data="{ sidebarCollapsed: false }">
+<body
+  class="flex h-screen overflow-hidden bg-slate-50 text-slate-900"
+  x-data="{ sidebarCollapsed: false }"
+  @collapse-dashboard-sidebar.window="sidebarCollapsed = true"
+>
 
     <!-- SIDEBAR (Desktop Only) -->
     <aside class="hidden md:flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out z-20 relative"
-           :class="sidebarCollapsed ? 'w-20' : 'w-72'">
+           :class="sidebarCollapsed ? 'w-72' : 'w-260'">
         
         <!-- Header Sidebar -->
         <div class="h-20 flex items-center px-6 border-b border-slate-100">

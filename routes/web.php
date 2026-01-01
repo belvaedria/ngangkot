@@ -1,20 +1,23 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicController;
 
-// Alias Controller biar gak bentrok nama
+// Passenger
 use App\Http\Controllers\Passenger\NavigasiController as PasNavigasi;
-use App\Http\Controllers\Passenger\RiwayatController as PasRiwayat;
 use App\Http\Controllers\Passenger\DashboardController as PasDashboard;
+use App\Http\Controllers\Passenger\RiwayatController as PasRiwayat;
 use App\Http\Controllers\Passenger\LaporanController as PasLaporan;
 use App\Http\Controllers\Passenger\EdukasiController as PasEdukasi;
 
+// Driver
 use App\Http\Controllers\Driver\TrackingController as DrvTracking;
 use App\Http\Controllers\Driver\DashboardController as DrvDashboard;
 use App\Http\Controllers\Driver\AngkotController as DrvAngkot;
 use App\Http\Controllers\Driver\RiwayatController as DrvRiwayat;
 
+// Admin
 use App\Http\Controllers\Admin\TrayekController as AdmTrayek;
 use App\Http\Controllers\Admin\DashboardController as AdmDashboard;
 use App\Http\Controllers\Admin\VerifikasiController as AdmVerifikasi;
@@ -22,18 +25,54 @@ use App\Http\Controllers\Admin\LaporanController as AdmLaporan;
 use App\Http\Controllers\Admin\ArtikelController as AdmArtikel;
 use App\Http\Controllers\Admin\FaqController as AdmFaq;
 
+/*
+|--------------------------------------------------------------------------
+| PUBLIC (Tanpa Login)
+|--------------------------------------------------------------------------
+*/
 
-// --- PUBLIC (Tanpa Login) ---
+// Welcome / landing
 Route::get('/', [PublicController::class, 'index'])->name('home');
+
+// (Opsional) public trayek lama kamu yang pakai kode — boleh dipertahankan
 Route::get('/trayek/{kode}', [PublicController::class, 'show'])->name('trayek.show');
 
-// FITUR KAMU: Navigasi (Bisa Public)
-Route::get('/navigasi', [PasNavigasi::class, 'index'])->name('navigasi.index');
+// Navigasi = dashboard → jadi /navigasi cuma redirect (biar gak ada 2 konsep)
+Route::get('/navigasi', fn () => redirect()->route('passenger.dashboard'))
+    ->name('navigasi.index');
+
+// Search route tetap public (guest boleh cari rute)
 Route::post('/navigasi/cari', [PasNavigasi::class, 'searchRoute'])->name('navigasi.search');
 
+/*
+|--------------------------------------------------------------------------
+| PASSENGER PUBLIC AREA (Guest boleh masuk)
+|--------------------------------------------------------------------------
+| Dashboard passenger = navigasi + map
+| Trayek & edukasi public (untuk welcome page)
+*/
+Route::prefix('passenger')->name('passenger.')->group(function () {
+    // HOME/DASHBOARD (public)
+    Route::get('/home', [PasDashboard::class, 'index'])->name('dashboard');
+
+    // Public trayek & edukasi versi passenger UI
+    // Sesuaikan controller/method kamu: bisa PublicController atau controller passenger.
+    Route::get('/trayek', [PublicController::class, 'trayekIndex'])->name('trayek.index');
+    Route::get('/edukasi', [PasEdukasi::class, 'index'])->name('edukasi.index');
+});
+
+/*
+|--------------------------------------------------------------------------
+| AUTH ROUTES (Breeze/Jetstream)
+|--------------------------------------------------------------------------
+*/
 require __DIR__.'/auth.php';
 
-// --- DASHBOARD REDIRECTOR ---
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD REDIRECTOR (untuk yang sudah login)
+|--------------------------------------------------------------------------
+*/
 Route::get('/dashboard', function () {
     $role = auth()->user()->role;
     if ($role === 'admin') return redirect()->route('admin.dashboard');
@@ -41,31 +80,34 @@ Route::get('/dashboard', function () {
     return redirect()->route('passenger.dashboard');
 })->middleware(['auth'])->name('dashboard');
 
-// --- AREA LOGIN ---
+/*
+|--------------------------------------------------------------------------
+| AUTHENTICATED AREA (Role-based)
+|--------------------------------------------------------------------------
+*/
 Route::middleware(['auth'])->group(function () {
 
+    // profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // PASSENGER locked
     Route::prefix('passenger')->name('passenger.')->middleware('role:passenger')->group(function () {
-        Route::get('/home', [PasDashboard::class, 'index'])->name('dashboard');
         Route::get('/riwayat', [PasRiwayat::class, 'index'])->name('riwayat.index');
         Route::post('/favorit', [PasRiwayat::class, 'storeFavorit'])->name('favorit.store');
         Route::resource('laporan', PasLaporan::class);
-        Route::resource('edukasi', PasEdukasi::class);
     });
 
+    // DRIVER locked
     Route::prefix('driver')->name('driver.')->middleware('role:driver')->group(function () {
         Route::get('/home', [DrvDashboard::class, 'index'])->name('dashboard');
-        Route::get('/tracking', [DrvTracking::class, 'index'])->name('tracking.index');
-        Route::post('/tracking', [DrvTracking::class, 'updateStatus'])->name('tracking.update');
-        Route::post('/tracking/lokasi', [DrvTracking::class, 'updateLokasi'])->name('tracking.lokasi'); // <--- UPDATE LOKASI (GPS)
+        Route::resource('tracking', DrvTracking::class)->only(['index', 'store']);
         Route::resource('angkot', DrvAngkot::class);
-        Route::post('/tracking/pilih', [DrvTracking::class, 'pilihAngkot'])->name('tracking.pilih');
-        Route::get('/riwayat', [DrvRiwayat::class, 'index'])->name('riwayat.index');
+        Route::resource('riwayat', DrvRiwayat::class)->only(['index']);
     });
 
+    // ADMIN locked
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::get('/home', [AdmDashboard::class, 'index'])->name('dashboard');
         Route::resource('trayek', AdmTrayek::class);

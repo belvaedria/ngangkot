@@ -4,227 +4,405 @@
 @section('title', 'Dashboard Penumpang')
 
 @section('content')
-<div class="flex-1 flex flex-col relative">
-    <div class="absolute inset-0" id="map"></div>
-    <div class="absolute inset-0 bg-gradient-to-b from-white/90 via-white/60 to-white/10 pointer-events-none"></div>
+<div
+  x-data="{
+    hasResult: {{ isset($hasilRute) ? 'true' : 'false' }},
+    selectedRoute: null
+  }"
+  class="min-h-screen flex flex-col relative"
+>
 
-    <div class="relative z-10 flex-1 overflow-y-auto custom-scroll p-6 md:p-10 space-y-6">
-        <div class="flex flex-col md:flex-row gap-6">
-            <div class="flex-1 bg-white/90 backdrop-blur-xl border border-white/70 shadow-xl rounded-3xl p-6 relative">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Navigasi</p>
-                        <h1 class="text-2xl font-black text-slate-900 leading-tight">Cari rute tercepat</h1>
-                        <p class="text-xs text-slate-400 font-semibold" id="gps-status">Menunggu GPS...</p>
-                    </div>
-                    <span class="p-3 rounded-2xl bg-blue-50 text-blue-600"><i data-lucide="navigation" class="w-5 h-5"></i></span>
-                </div>
+    {{-- MAP background --}}
+    <div class="absolute inset-0 z-0" id="map"></div>
+    @if(!isset($hasilRute))
+        <div class="absolute inset-0 z-[1] bg-gradient-to-b from-white/90 via-white/60 to-white/10 pointer-events-none"></div>
+    @endif
 
-                <form action="{{ route('navigasi.search') }}" method="POST" class="space-y-4">
-                    @csrf
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="text-xs font-bold text-slate-500">Lokasi Awal</label>
-                            <button type="button" id="btn-edit-asal" class="text-[10px] font-bold text-blue-600 underline">Ubah asal</button>
+    {{-- Content wrapper --}}
+    <div class="relative z-10 flex-1 overflow-y-auto custom-scroll p-6 md:p-10 lg:pl-[440px]">
+        <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+            {{-- LEFT: Search & quick context --}}
+            <div class="flex-1 space-y-6">
+                    {{-- Search Card --}}
+                <div class="bg-white/90 backdrop-blur-xl border border-white/70 shadow-xl rounded-3xl p-6 relative">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h1 class="text-2xl font-black text-slate-900 leading-tight">Mau ke mana hari ini?</h1>
+                            <p class="text-xs text-slate-400 font-semibold" id="gps-status">Menunggu GPS...</p>
                         </div>
-                        <input id="display_asal" type="text" readonly placeholder="Sedang mencari lokasi..."
-                               class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-700">
-                        <div id="asal-search" class="hidden">
-                            <input id="input_asal" type="text" placeholder="Cari alamat atau tempat di Bandung"
-                                   class="w-full mt-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-100 focus:border-blue-300">
-                            <div id="asal_suggestions" class="mt-1 space-y-1"></div>
+                        <span class="p-3 rounded-2xl bg-blue-50 text-blue-600">
+                            <i data-lucide="navigation" class="w-5 h-5"></i>
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Hint guest/login --}}
+                @guest
+                    <div class="bg-white/85 backdrop-blur border border-white/70 shadow rounded-3xl p-5">
+                        <div class="flex items-start gap-3">
+                            <div class="shrink-0 p-2 rounded-2xl bg-amber-50 text-amber-700">
+                                <i data-lucide="lock" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <p class="font-black text-slate-900">Anda masuk sebagai Guest</p>
+                                <p class="text-sm text-slate-600 mt-1">
+                                    Anda tetap bisa cari rute. Tapi <span class="font-bold">riwayat perjalanan tidak disimpan</span>.
+                                    Jika ingin menyimpan perjalanan, silahkan login.
+                                </p>
+                                <a href="{{ route('login') }}" class="inline-flex mt-3 px-4 py-2 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition">
+                                    Login
+                                </a>
+                            </div>
                         </div>
-                        <input type="hidden" id="lat_asal" name="lat_asal">
-                        <input type="hidden" id="lng_asal" name="lng_asal">
-                        <input type="hidden" id="nama_asal" name="nama_asal">
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-500">Tujuan</label>
-                        <input id="input_tujuan" type="text" name="nama_tujuan" required placeholder="Contoh: Stasiun Hall"
-                               class="w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-100 focus:border-blue-300">
-                        <div id="tujuan_suggestions" class="mt-1 space-y-1"></div>
-                        <input type="hidden" name="lat_tujuan" id="lat_tujuan" value="">
-                        <input type="hidden" name="lng_tujuan" id="lng_tujuan" value="">
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($favorit ?? [] as $fav)
-                            <button type="button"
-                                    class="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100"
-                                    onclick="isiFavorit('{{ $fav->asal_coords }}','{{ $fav->tujuan_coords }}','{{ $fav->asal_nama }}','{{ $fav->tujuan_nama }}')">
-                                <i data-lucide="star" class="w-3 h-3 inline-block mr-1 text-amber-500"></i>{{ $fav->nama_label }}
-                            </button>
-                        @endforeach
-                    </div>
-                    <button type="submit" id="btn-cari" disabled
-                            class="w-full rounded-xl bg-slate-900 text-white font-bold py-3 text-sm shadow-lg shadow-slate-900/20 disabled:opacity-50 flex items-center justify-center gap-2">
-                        Cari Rute <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </button>
-                </form>
-            </div>
+                @endguest
 
-            <div class="w-full md:w-[360px] space-y-4">
-                <div class="bg-white/90 backdrop-blur-xl border border-white/70 shadow-xl rounded-3xl p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-sm font-black text-slate-900">Trayek aktif</h3>
-                        <span class="text-[10px] font-black text-blue-600 bg-blue-50 rounded-full px-2 py-1">Live</span>
-                    </div>
-                    <div class="space-y-3 max-h-[260px] overflow-y-auto custom-scroll pr-1">
-                        @forelse($trayeks as $trayek)
-                            <a href="{{ route('trayek.show', $trayek->kode_trayek) }}"
-                               class="block border border-slate-100 rounded-2xl p-4 hover:-translate-y-1 transition-all bg-white group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xs" style="background: {{ $trayek->warna_angkot }}">
-                                        {{ $trayek->kode_trayek }}
-                                    </div>
-                                    <div class="flex-1">
-                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ $trayek->kode_trayek }}</p>
-                                        <p class="text-sm font-black text-slate-900">{{ $trayek->nama_trayek }}</p>
-                                    </div>
-                                </div>
-                            </a>
-                        @empty
-                            <p class="text-xs text-slate-500">Belum ada data trayek.</p>
-                        @endforelse
-                    </div>
-                </div>
-
-                <div class="bg-white/90 backdrop-blur-xl border border-white/70 shadow-xl rounded-3xl p-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-sm font-black text-slate-900">Riwayat cepat</h3>
-                        <a href="{{ route('passenger.riwayat.index') }}" class="text-[10px] font-bold text-blue-600">Lihat semua</a>
-                    </div>
-                    <div class="space-y-3 max-h-[200px] overflow-y-auto custom-scroll pr-1">
-                        @forelse($riwayat ?? [] as $item)
-                            <form action="{{ route('navigasi.search') }}" method="POST" class="flex items-center gap-3 border border-slate-100 rounded-xl p-3 bg-slate-50/60">
-                                @csrf
-                                <input type="hidden" name="asal_coords" value="{{ $item->asal_coords }}">
-                                <input type="hidden" name="lat_asal" value="{{ explode(',', $item->asal_coords)[0] }}">
-                                <input type="hidden" name="lng_asal" value="{{ explode(',', $item->asal_coords)[1] }}">
-                                <input type="hidden" name="lat_tujuan" value="{{ explode(',', $item->tujuan_coords)[0] }}">
-                                <input type="hidden" name="lng_tujuan" value="{{ explode(',', $item->tujuan_coords)[1] }}">
-                                <input type="hidden" name="nama_asal" value="{{ $item->asal_nama }}">
-                                <input type="hidden" name="nama_tujuan" value="{{ $item->tujuan_nama }}">
-                                <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><i data-lucide="clock" class="w-4 h-4"></i></div>
-                                <div class="flex-1">
-                                    <p class="text-xs font-black text-slate-800">{{ $item->asal_nama }} → {{ $item->tujuan_nama }}</p>
-                                    <p class="text-[10px] text-slate-500">{{ $item->created_at->diffForHumans() }}</p>
-                                </div>
-                                <button class="text-[10px] font-bold text-blue-600">Pakai</button>
-                            </form>
-                        @empty
-                            <p class="text-xs text-slate-500">Belum ada riwayat.</p>
-                        @endforelse
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
+
+
+
+@if(isset($hasilRute))
+  <aside class="fixed left-[var(--sidebar-width)] top-0 h-screen w-[420px] bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-2xl z-40 flex flex-col">
+    <div>
+        <form action="{{ route('navigasi.search') }}" method="POST" class="space-y-4" id="navForm">
+            @csrf
+
+            {{-- Hidden coords --}}
+            <input type="hidden" name="lat_asal" id="lat_asal">
+            <input type="hidden" name="lng_asal" id="lng_asal">
+            <input type="hidden" name="lat_tujuan" id="lat_tujuan">
+            <input type="hidden" name="lng_tujuan" id="lng_tujuan">
+            <input type="hidden" name="nama_asal" id="nama_asal">
+            <input type="hidden" name="nama_tujuan" id="nama_tujuan">
+
+            <div class="relative">
+                <input
+                id="input_asal"
+                type="text"
+                value="{{ old('nama_asal', $asal ?? '') }}"
+                class="w-full mt-1 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="Lokasi saya (GPS)"
+                autocomplete="off"
+                />
+
+                <div id="suggestions_asal"
+                    class="absolute top-full left-0 z-[9999] mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl hidden max-h-64 overflow-y-auto">
+                </div>
+            </div>
+
+                        {{-- Tujuan + autocomplete --}}
+                        <div class="relative">
+                            <label class="text-xs font-bold text-slate-600">Lokasi tujuan</label>
+                            <input
+                            id="input_tujuan"
+                            type="text"
+                            value="{{ old('nama_tujuan', $tujuan ?? '') }}"
+                            class="w-full mt-1 px-4 py-3 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="Ketik tujuan Anda..."
+                            autocomplete="off"
+                            />
+
+
+                            {{-- Dropdown autocomplete --}}
+                            <div id="suggestions"
+                                class="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl hidden max-h-64 overflow-y-auto">
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            id="btnCari"
+                            class="w-full py-3 rounded-2xl bg-blue-600 text-white font-black tracking-tight shadow-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            disabled
+                        >
+                            Cari Rute
+                        </button>
+
+                        @if ($errors->any())
+                            <div class="mt-2 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+                                <p class="font-bold mb-1">Oops, ada yang kurang:</p>
+                                <ul class="list-disc ml-5">
+                                    @foreach ($errors->all() as $err)
+                                        <li>{{ $err }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </form>
+    </div>
+    <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3">
+      @if(count($hasilRute)===0)
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+          <p class="font-black text-slate-900">Tidak ditemukan rute yang cocok.</p>
+          <p class="text-sm text-slate-600 mt-1">Coba titik tujuan lain yang lebih spesifik.</p>
+        </div>
+      @else
+        @foreach($hasilRute as $idx => $trayek)
+          <details class="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+            <summary class="cursor-pointer p-4 hover:bg-slate-50">
+              <p class="font-black text-slate-900">{{ $trayek->nama_trayek }}</p>
+              <p class="text-xs text-slate-600 mt-1">
+                {{ $trayek->tarif_total_label ?? '-' }} • {{ $trayek->info_waktu ?? '-' }} • {{ $trayek->info_jarak ?? '-' }}
+              </p>
+            </summary>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+              @foreach(($trayek->rute_detail ?? []) as $step)
+                <div class="text-sm">
+                  <p class="font-bold text-slate-900">{{ $step['instruksi'] ?? '' }}</p>
+                  <p class="text-xs text-slate-600">{{ $step['detail'] ?? '' }} • {{ $step['waktu'] ?? '' }}</p>
+                  @if(($step['jenis'] ?? '')==='angkot' && !empty($step['tarif_label']))
+                    <p class="text-xs font-black text-slate-900 mt-1">{{ $step['tarif_label'] }} (sekali naik)</p>
+                  @endif
+                </div>
+              @endforeach
+            </div>
+          </details>
+        @endforeach
+      @endif
+    </div>
+  </aside>
+@endif
+
 @endsection
 
 @push('scripts')
 <script>
     lucide.createIcons();
+
+    // --- MAP ---
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-6.917464, 107.619122], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
 
+    function validateForm() {
+        const latTujuan = document.getElementById('lat_tujuan').value;
+        const lngTujuan = document.getElementById('lng_tujuan').value;
+        const btn = document.getElementById('btnCari');
+        btn.disabled = !(latTujuan && lngTujuan);
+    }
+
+    // GPS default asal
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
+
                 map.setView([lat, lng], 15);
+                setTimeout(() => map.invalidateSize(), 200);
+
                 L.marker([lat, lng]).addTo(map).bindPopup("Lokasi Kamu").openPopup();
                 L.circle([lat, lng], {radius: 400, color: '#2563eb', fillOpacity: 0.08, weight: 1}).addTo(map);
+
                 document.getElementById('lat_asal').value = lat;
                 document.getElementById('lng_asal').value = lng;
                 document.getElementById('nama_asal').value = "Lokasi Saya (" + lat.toFixed(4) + ")";
-                document.getElementById('display_asal').value = "Lokasi Saya Saat Ini";
+                document.getElementById('input_asal').value = "Lokasi saat ini";
+
                 validateForm();
-                document.getElementById('gps-status').innerText = "Lokasi ditemukan akurat.";
-                document.getElementById('gps-status').className = "text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded";
+
+                const gps = document.getElementById('gps-status');
+                gps.innerText = "Lokasi ditemukan akurat.";
+                gps.className = "text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-block mt-1";
             },
             () => {
-                document.getElementById('gps-status').innerText = "GPS tidak aktif, memakai lokasi default.";
-                document.getElementById('lat_asal').value = -6.921;
-                document.getElementById('lng_asal').value = 107.610;
-                document.getElementById('display_asal').value = "Alun-alun Bandung";
+                const gps = document.getElementById('gps-status');
+                gps.innerText = "GPS tidak aktif, memakai lokasi default Bandung.";
+                gps.className = "text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded inline-block mt-1";
+
+                // fallback Bandung
+                const lat = -6.917464, lng = 107.619122;
+                map.setView([lat, lng], 15);
+                setTimeout(() => map.invalidateSize(), 200);
+
+
+                document.getElementById('lat_asal').value = lat;
+                document.getElementById('lng_asal').value = lng;
+                document.getElementById('nama_asal').value = "Pusat Kota Bandung";
+                document.getElementById('display_asal').value = "Pusat Kota Bandung";
+
                 validateForm();
             }
         );
     }
 
-    const bboxBandung = '107.4,-6.9,107.75,-6.75';
-    function setupGeocoder(inputEl, listEl, onPick) {
-        let timer = null;
-        inputEl.addEventListener('input', () => {
-            clearTimeout(timer);
-            const q = inputEl.value.trim();
-            if (q.length < 3) { listEl.innerHTML = ''; return; }
-            timer = setTimeout(async () => {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&bounded=1&viewbox=${bboxBandung}&q=${encodeURIComponent(q + ' Bandung')}`;
-                const res = await fetch(url, { headers: { 'Accept-Language': 'id' }});
-                const data = await res.json();
-                listEl.innerHTML = data.map(item => `
-                    <button type="button" class="w-full text-left px-3 py-2 rounded-lg border border-slate-100 bg-white hover:bg-blue-50 text-xs font-semibold text-slate-700"
-                        data-lat="${item.lat}" data-lng="${item.lon}" data-label="${item.display_name}">
-                        ${item.display_name}
-                    </button>
-                `).join('');
-                listEl.querySelectorAll('button').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        onPick(btn.dataset.lat, btn.dataset.lng, btn.dataset.label);
-                        listEl.innerHTML = '';
-                    });
-                });
-            }, 350);
-        });
-    }
+    const inputAsal = document.getElementById('input_asal');
+    const suggestionsAsal = document.getElementById('suggestions_asal');
 
-    function validateForm() {
-        const ready = document.getElementById('lat_asal').value && document.getElementById('lng_asal').value &&
-                      document.getElementById('lat_tujuan').value && document.getElementById('lng_tujuan').value;
-        document.getElementById('btn-cari').disabled = !ready;
-    }
+    let debounceAsal;
 
-    document.getElementById('btn-edit-asal').addEventListener('click', () => {
-        document.getElementById('asal-search').classList.toggle('hidden');
-        document.getElementById('input_asal').focus();
+    inputAsal.addEventListener('focus', () => {
+    // kalau user mau planning, ubah style jadi putih
+    inputAsal.classList.remove('bg-slate-50');
+    inputAsal.classList.add('bg-white');
     });
 
-    setupGeocoder(
-        document.getElementById('input_asal'),
-        document.getElementById('asal_suggestions'),
-        (lat, lng, label) => {
-            document.getElementById('lat_asal').value = lat;
-            document.getElementById('lng_asal').value = lng;
-            document.getElementById('nama_asal').value = label;
-            document.getElementById('display_asal').value = label;
-            validateForm();
-        }
-    );
-    setupGeocoder(
-        document.getElementById('input_tujuan'),
-        document.getElementById('tujuan_suggestions'),
-        (lat, lng, label) => {
-            document.getElementById('lat_tujuan').value = lat;
-            document.getElementById('lng_tujuan').value = lng;
-            document.getElementById('input_tujuan').value = label;
-            validateForm();
-        }
-    );
+    inputAsal.addEventListener('input', () => {
+    clearTimeout(debounceAsal);
+    const q = inputAsal.value.trim();
 
-    function isiFavorit(asal, tujuan, namaAsal, namaTujuan) {
-        const [latA, lngA] = asal.split(',');
-        const [latT, lngT] = tujuan.split(',');
-        document.getElementById('lat_asal').value = latA;
-        document.getElementById('lng_asal').value = lngA;
-        document.getElementById('nama_asal').value = namaAsal;
-        document.querySelector('input[name=\"lat_tujuan\"]').value = latT;
-        document.querySelector('input[name=\"lng_tujuan\"]').value = lngT;
-        document.querySelector('input[name=\"nama_tujuan\"]').value = namaTujuan;
-        document.getElementById('display_asal').value = namaAsal;
+    resetAsalState();
+
+    if (q.length < 3) {
+        suggestionsAsal.classList.add('hidden');
+        suggestionsAsal.innerHTML = '';
+        return;
+    }
+
+    debounceAsal = setTimeout(async () => {
+        const viewbox = "107.534,-6.999,107.731,-6.840";
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&bounded=1&viewbox=${encodeURIComponent(viewbox)}&q=${encodeURIComponent(q + ' Bandung')}`;
+
+        try {
+        const res = await fetch(url, { headers: { 'Accept-Language': 'id' }});
+        const data = await res.json();
+
+        suggestionsAsal.innerHTML = '';
+        if (!data || data.length === 0) {
+            suggestionsAsal.classList.add('hidden');
+            return;
+        }
+
+        data.forEach(item => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'w-full text-left px-4 py-3 hover:bg-slate-50 transition border-b border-slate-100 last:border-b-0';
+            btn.innerHTML = `<div class="text-sm font-black text-slate-900">${item.display_name}</div>
+                            <div class="text-xs text-slate-500">${item.type || ''}</div>`;
+            btn.onclick = () => {
+            const lat = parseFloat(item.lat);
+            const lon = parseFloat(item.lon);
+
+            document.getElementById('lat_asal').value = lat;
+            document.getElementById('lng_asal').value = lon;
+            document.getElementById('nama_asal').value = item.display_name;
+
+            inputAsal.value = item.display_name;
+
+            suggestionsAsal.classList.add('hidden');
+            suggestionsAsal.innerHTML = '';
+
+            // update map marker asal
+            map.setView([lat, lon], 15);
+            setTimeout(() => map.invalidateSize(), 200);
+            L.marker([lat, lon]).addTo(map).bindPopup("Lokasi awal").openPopup();
+
+            validateForm();
+            };
+            suggestionsAsal.appendChild(btn);
+        });
+
+        suggestionsAsal.classList.remove('hidden');
+        } catch(e) {
+        suggestionsAsal.classList.add('hidden');
+        }
+    }, 250);
+    });
+
+    document.addEventListener('click', (e) => {
+    if (!suggestionsAsal.contains(e.target) && e.target !== inputAsal) {
+        suggestionsAsal.classList.add('hidden');
+    }
+    });
+
+    // --- AUTOCOMPLETE tujuan (Nominatim) ---
+    const input = document.getElementById('input_tujuan');
+    const suggestions = document.getElementById('suggestions');
+
+    let debounce;
+    input.addEventListener('input', () => {
+        resetTujuanState();
+        clearTimeout(debounce);
+        const q = input.value.trim();
+        if (q.length < 3) {
+            suggestions.classList.add('hidden');
+            suggestions.innerHTML = '';
+            document.getElementById('lat_tujuan').value = '';
+            document.getElementById('lng_tujuan').value = '';
+            document.getElementById('nama_tujuan').value = '';
+            validateForm();
+            return;
+        }
+
+        debounce = setTimeout(async () => {
+            // Viewbox Bandung (perkiraan): west,south,east,north
+            const viewbox = "107.534,-6.999,107.731,-6.840";
+            const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&bounded=1&viewbox=${encodeURIComponent(viewbox)}&q=${encodeURIComponent(q + ' Bandung')}`;
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'Accept-Language': 'id' }
+                });
+                const data = await res.json();
+
+                suggestions.innerHTML = '';
+                if (!data || data.length === 0) {
+                    suggestions.classList.add('hidden');
+                    return;
+                }
+
+                data.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'w-full text-left px-4 py-3 hover:bg-slate-50 transition border-b border-slate-100 last:border-b-0';
+                    btn.innerHTML = `<div class="text-sm font-black text-slate-900">${item.display_name}</div>
+                                     <div class="text-xs text-slate-500">${item.type || ''}</div>`;
+                    btn.onclick = () => {
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+
+                        document.getElementById('lat_tujuan').value = lat;
+                        document.getElementById('lng_tujuan').value = lon;
+                        document.getElementById('nama_tujuan').value = item.display_name;
+
+                        input.value = item.display_name;
+
+                        suggestions.classList.add('hidden');
+                        suggestions.innerHTML = '';
+
+                        // Pan to tujuan
+                        map.setView([lat, lon], 15);
+                        setTimeout(() => map.invalidateSize(), 200);
+
+                        L.marker([lat, lon]).addTo(map).bindPopup("Tujuan").openPopup();
+
+                        validateForm();
+                    };
+                    suggestions.appendChild(btn);
+                });
+
+                suggestions.classList.remove('hidden');
+            } catch (e) {
+                suggestions.classList.add('hidden');
+            }
+        }, 250);
+    });
+
+    // close suggestions when click outside
+    document.addEventListener('click', (e) => {
+        if (!suggestions.contains(e.target) && e.target !== input) {
+            suggestions.classList.add('hidden');
+        }
+    });
+
+    function resetTujuanState() {
+        document.getElementById('lat_tujuan').value = '';
+        document.getElementById('lng_tujuan').value = '';
+        document.getElementById('nama_tujuan').value = '';
         validateForm();
     }
+
+    function resetAsalState() {
+        document.getElementById('lat_asal').value = '';
+        document.getElementById('lng_asal').value = '';
+        document.getElementById('nama_asal').value = '';
+        validateForm();
+    }
+
+
 </script>
 @endpush
