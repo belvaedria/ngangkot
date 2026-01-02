@@ -51,7 +51,7 @@
       <div x-show="!hasResult" x-cloak>
         <h1 class="text-2xl font-black text-slate-900 leading-tight">Mau ke mana hari ini?</h1>
 
-        <form action="{{ route('navigasi.search') }}" method="POST" class="space-y-4" id="navForm">
+        <form data-navform action="{{ route('navigasi.search') }}" method="POST" class="space-y-4">
                                     @csrf
 
                                     {{-- Hidden coords --}}
@@ -162,7 +162,7 @@
                             style="left: var(--sidebar-width, 0px);"
                         >
                             <div class="p-6">
-                                <form action="{{ route('navigasi.search') }}" method="POST" class="space-y-4" id="navForm">
+                                <form data-navform action="{{ route('navigasi.search') }}" method="POST" class="space-y-4">
                                     @csrf
 
                                     {{-- Hidden coords --}}
@@ -231,7 +231,7 @@
                         </div>
 
                         <div class="flex-1 overflow-y-auto custom-scroll p-4 space-y-3">
-                        @if(empty($hasilRute))
+                        @if($hasResult === false)
                             <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                             <p class="font-black text-slate-900">Tidak ditemukan rute yang cocok.</p>
                             <p class="text-sm text-slate-600 mt-1">Coba titik tujuan lain yang lebih spesifik.</p>
@@ -240,10 +240,7 @@
                             @foreach($hasilRute as $idx => $route)
                             <details
                             class="rounded-2xl border border-slate-200 bg-white overflow-hidden"
-                            data-rute='@json($trayek->rute_json)'
-                            data-naik='@json($trayek->titik_naik ?? null)'
-                            data-turun='@json($trayek->titik_turun ?? null)'
-                            data-geojson='@json($route["map_geojson"])'
+                            data-geojson='@json($route["map_geojson"] ?? ["type"=>"FeatureCollection","features"=>[]])'
                             >
                                 <summary class="p-4 cursor-pointer">
                                     <p class="font-black">
@@ -305,6 +302,34 @@
         map.invalidateSize();
     });
     ro.observe(mapEl);
+
+    function initNavForm(form) {
+        const latAsal = form.querySelector('input[name="lat_asal"]');
+        const lngAsal = form.querySelector('input[name="lng_asal"]');
+        const latTujuan = form.querySelector('input[name="lat_tujuan"]');
+        const lngTujuan = form.querySelector('input[name="lng_tujuan"]');
+        const namaAsal = form.querySelector('input[name="nama_asal"]');
+        const namaTujuan = form.querySelector('input[name="nama_tujuan"]');
+
+        const inputAsal = form.querySelector('#input_asal');
+        const inputTujuan = form.querySelector('#input_tujuan');
+        const btnCari = form.querySelector('#btnCari');
+
+        // kalau form ini nggak punya field (safety)
+        if (!latTujuan || !lngTujuan || !btnCari || !inputAsal || !inputTujuan) return;
+
+        function validateForm() {
+            btnCari.disabled = !(latTujuan.value && lngTujuan.value);
+        }
+
+        // panggil validate awal
+        validateForm();
+
+        inputTujuan.addEventListener('input', validateForm);
+    }
+
+    document.querySelectorAll('form[data-navform]').forEach(initNavForm);
+
 
 
     function validateForm() {
@@ -513,41 +538,6 @@
         }).addTo(map);
 
         map.fitBounds(activePolyline.getBounds(), { padding: [40,40] });
-    });
-    });
-
-    document.querySelectorAll('details[data-rute]').forEach(dt => {
-    dt.addEventListener('toggle', () => {
-        if (!dt.open) return;
-
-        // tutup details lain biar satu rute aktif
-        document.querySelectorAll('details[data-rute]').forEach(other => {
-        if (other !== dt) other.open = false;
-        });
-
-        clearActiveRoute();
-
-        // rute_json kamu itu string json geojson
-        const geoStr = dt.dataset.rute;
-        let geo;
-        try { geo = JSON.parse(geoStr); } catch(e) { return; }
-
-        const coords = geo?.features?.[0]?.geometry?.coordinates || [];
-        // Leaflet butuh [lat,lng]
-        const latlngs = coords.map(c => [c[1], c[0]]);
-
-        activePolyline = L.polyline(latlngs, { weight: 5 }).addTo(map);
-        map.fitBounds(activePolyline.getBounds(), { padding: [30, 30] });
-
-        const naik = dt.dataset.naik ? JSON.parse(dt.dataset.naik) : null;
-        const turun = dt.dataset.turun ? JSON.parse(dt.dataset.turun) : null;
-
-        if (naik?.lat && naik?.lng) {
-        activeMarkers.push(L.marker([naik.lat, naik.lng]).addTo(map).bindPopup("Titik naik"));
-        }
-        if (turun?.lat && turun?.lng) {
-        activeMarkers.push(L.marker([turun.lat, turun.lng]).addTo(map).bindPopup("Titik turun"));
-        }
     });
     });
 

@@ -99,13 +99,6 @@ class NavigasiController extends Controller
         $latTujuan = (float) $request->lat_tujuan;
         $lngTujuan = (float) $request->lng_tujuan;
 
-        // Radius "dekat" ke jalur trayek (meter)
-        $radius = 350;
-
-        $hasilPencarian = [];
-
-        $allTrayek = Trayek::all();
-
         $variants = $routeFinder->findVariants(
             latAsal: $latAsal,
             lngAsal: $lngAsal,
@@ -118,17 +111,13 @@ class NavigasiController extends Controller
         $hasilRute = collect($variants);
 
 
-        // Sort hasil: waktu tercepat dulu, lalu tarif termurah
-        usort($hasilPencarian, function ($a, $b) {
-            // info_waktu format "XX min"
-            $wa = (int) preg_replace('/\D+/', '', (string)($a->info_waktu ?? '999'));
-            $wb = (int) preg_replace('/\D+/', '', (string)($b->info_waktu ?? '999'));
-            if ($wa !== $wb) return $wa <=> $wb;
+        $hasilRute = collect($variants)
+            ->sortBy([
+                fn ($r) => $r['total_duration_min'] ?? 999999,
+                fn ($r) => $r['total_fare'] ?? 999999999,
+            ])
+            ->values();
 
-            $ta = (int) ($a->tarif_total ?? PHP_INT_MAX);
-            $tb = (int) ($b->tarif_total ?? PHP_INT_MAX);
-            return $ta <=> $tb;
-        });
 
         if (Auth::check()) {
             RiwayatPenumpang::create([

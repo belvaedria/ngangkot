@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'walk_router' => env('WALK_ROUTER', 'osrm'),
+
+    'mapbox' => [
+        'token' => env('MAPBOX_TOKEN'),
+    ],
+
 ];

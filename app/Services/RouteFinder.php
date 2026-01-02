@@ -38,14 +38,35 @@ class RouteFinder
         float $lngAsal,
         float $latTujuan,
         float $lngTujuan,
-        int $walkRadius = 700,
+        int $walkRadius = 1000,
         int $maxVariants = 6
     ): array {
         [$nodes, $edges, $trayekLines] = $this->buildGraph($walkRadius);
 
         // Tambah node origin & dest
-        $nodes['__origin__'] = ['lat' => $latAsal, 'lng' => $lngAsal, 'type' => 'origin'];
-        $nodes['__dest__']   = ['lat' => $latTujuan, 'lng' => $lngTujuan, 'type' => 'dest'];
+        // === SNAP origin ke trayek terdekat ===
+        $snapOrigin = $this->snapPointToTrayekLine($latAsal, $lngAsal, $trayekLines);
+        if (!$snapOrigin) return [];
+
+        $nodes['__origin__'] = [
+            'lat' => $snapOrigin['lat'],
+            'lng' => $snapOrigin['lng'],
+            'type' => 'origin',
+        ];
+
+        // === SNAP destination ke trayek terdekat ===
+        $snapDest = $this->snapPointToTrayekLine($latTujuan, $lngTujuan, $trayekLines);
+        if (!$snapDest) return [];
+
+        $nodes['__dest__'] = [
+            'lat' => $snapDest['lat'],
+            'lng' => $snapDest['lng'],
+            'type' => 'dest',
+        ];
+
+        $edges['__origin__'] = [];
+        $edges['__dest__'] = [];
+
         $edges['__origin__'] = [];
         $edges['__dest__']   = [];
 
@@ -53,10 +74,11 @@ class RouteFinder
         $this->connectVirtualNodeToGraph('__origin__', $latAsal, $lngAsal, $nodes, $edges, $walkRadius);
         $this->connectVirtualNodeToGraph('__dest__', $latTujuan, $lngTujuan, $nodes, $edges, $walkRadius);
 
-        // Kalau origin/dest gak nyambung ke graph sama sekali -> balikkan empty (biar UI bisa “tidak ditemukan”)
         if (empty($edges['__origin__']) || empty($edges['__dest__'])) {
-            return [];
+            // fallback: cari direct 1-trayek (mirip versi controller lama)
+            return $this->fallbackDirectOneTrayek($latAsal, $lngAsal, $latTujuan, $lngTujuan);
         }
+
 
         // Kumpulan parameter untuk bikin alternatif (tanpa Yen biar ga berat)
         // Nanti kita filter duplikat berdasarkan urutan trayek yang dipakai.
@@ -82,8 +104,10 @@ class RouteFinder
                 '__origin__',
                 '__dest__',
                 transferPenalty: $run['transferPenalty'],
-                walkMultiplier:  $run['walkMultiplier']
+                walkMultiplier:  $run['walkMultiplier'],
+                maxTransfers:    3
             );
+
 
             if (!$res) continue;
 
@@ -96,12 +120,27 @@ class RouteFinder
             );
 
             // Signature = urutan trayek yang dipakai + count segmen
-            $sig = $itin['signature'];
+            $sig = $itin['signature'] ?? null;
+            if (!$sig) continue;
+
             if (isset($seen[$sig])) continue;
             $seen[$sig] = true;
 
             $itineraries[] = $itin;
         }
+
+        // kalau opsi dari dijkstra cuma sedikit / kebanyakan sama, tambahin opsi "direct 1 trayek"
+        $directs = $this->directTrayekCandidates($latAsal, $lngAsal, $latTujuan, $lngTujuan, $trayekLines, max: 3);
+
+        foreach ($directs as $d) {
+            $sig = $d['signature'] ?? null;
+            if (!$sig) continue;
+            if (isset($seen[$sig])) continue;
+            $seen[$sig] = true;
+            $itineraries[] = $d;
+            if (count($itineraries) >= $maxVariants) break;
+        }
+
 
         // Sort: waktu tercepat dulu, lalu tarif (kalau ada)
         usort($itineraries, function ($a, $b) {
@@ -134,7 +173,7 @@ class RouteFinder
         $trayekLines = []; // trayek_id => ['coords'=>[[lat,lng],...], 'name'=>, 'color'=>]
 
         // Downsample biar node gak gila-gilaan (ubah sesuai data kamu)
-        $downsampleEvery = 6; // ambil tiap 6 titik (boleh 4/8 tergantung density)
+        $downsampleEvery = 3; // ambil tiap 6 titik (boleh 4/8 tergantung density)
 
         foreach ($trayeks as $trayek) {
             $geo = json_decode($trayek->rute_json, true);
@@ -287,7 +326,7 @@ class RouteFinder
 
         // sort by distance & limit
         usort($candidates, fn($a,$b) => $a[1] <=> $b[1]);
-        $candidates = array_slice($candidates, 0, 25);
+        $candidates = array_slice($candidates, 0, 60);
 
         foreach ($candidates as [$id, $d]) {
             $walkMin = max(1, (int)ceil($d / 50.0));
@@ -305,41 +344,48 @@ class RouteFinder
     /**
      * @return array{dist: float, path: array<int,array{node:string, edge:?array}>}|null
      */
+    
     private function dijkstra(
         array $edges,
         string $startId,
         string $endId,
         float $transferPenalty = 0.0,
-        float $walkMultiplier = 1.0
+        float $walkMultiplier = 1.0,
+        int $maxTransfers = 3
     ): ?array {
         $INF = 1e18;
 
-        // dist[node][prev_trayek] = minutes
+        // dist[node][stateKey] = minutes
         $dist = [];
+        // prev[node][stateKey] = ['node'=>fromNode,'stateKey'=>fromStateKey,'edge'=>edge]
         $prev = [];
 
         $pq = new \SplPriorityQueue();
-        $dist[$startId][null] = 0.0;
-        $pq->insert(['node' => $startId, 'prev_trayek' => null], 0.0);
+
+        $startState = 'null|0'; // prevTrayek=null, transfers=0
+        $dist[$startId][$startState] = 0.0;
+        $pq->insert(['node' => $startId, 'prev_trayek' => null, 'transfers' => 0], 0.0);
 
         while (!$pq->isEmpty()) {
             $curr = $pq->extract();
             $u = $curr['node'];
-            $uPrevTrayek = $curr['prev_trayek'];
+            $uPrevTrayek = $curr['prev_trayek'];         // int|null
+            $uTransfers  = (int)($curr['transfers'] ?? 0);
 
-            $d_u = $dist[$u][$uPrevTrayek] ?? $INF;
+            $uState = ($uPrevTrayek === null ? 'null' : (string)$uPrevTrayek) . '|' . $uTransfers;
+            $d_u = $dist[$u][$uState] ?? $INF;
 
             if ($u === $endId) {
                 // reconstruct
                 $path = [];
                 $stateNode = $u;
-                $statePrev = $uPrevTrayek;
+                $stateKey  = $uState;
 
-                while (isset($prev[$stateNode][$statePrev])) {
-                    $rec = $prev[$stateNode][$statePrev];
+                while (isset($prev[$stateNode][$stateKey])) {
+                    $rec = $prev[$stateNode][$stateKey];
                     $path[] = ['node' => $stateNode, 'edge' => $rec['edge']];
                     $stateNode = $rec['node'];
-                    $statePrev = $rec['prev_trayek'];
+                    $stateKey  = $rec['stateKey'];
                 }
                 $path[] = ['node' => $startId, 'edge' => null];
                 $path = array_reverse($path);
@@ -358,32 +404,45 @@ class RouteFinder
 
                 $extra = 0.0;
                 $nextPrevTrayek = null;
+                $nextTransfers = $uTransfers;
 
                 if ($type === 'angkot') {
                     $currTrayek = $edge['trayek_id'] ?? null;
 
+                    // transfer terjadi kalau pindah trayek (dan bukan naik pertama)
                     if ($uPrevTrayek !== null && $currTrayek !== null && $uPrevTrayek !== $currTrayek) {
+                        $nextTransfers++;
                         $extra += $transferPenalty;
                     }
                     $nextPrevTrayek = $currTrayek;
                 }
 
-                $alt = ($dist[$u][$uPrevTrayek] ?? $INF) + $w + $extra;
+                // hard cap transfer
+                if ($nextTransfers > $maxTransfers) continue;
 
-                if (!isset($dist[$v][$nextPrevTrayek]) || $alt < $dist[$v][$nextPrevTrayek]) {
-                    $dist[$v][$nextPrevTrayek] = $alt;
-                    $prev[$v][$nextPrevTrayek] = [
+                $vState = ($nextPrevTrayek === null ? 'null' : (string)$nextPrevTrayek) . '|' . $nextTransfers;
+                $alt = $d_u + $w + $extra;
+
+                if (!isset($dist[$v][$vState]) || $alt < $dist[$v][$vState]) {
+                    $dist[$v][$vState] = $alt;
+                    $prev[$v][$vState] = [
                         'node' => $u,
-                        'prev_trayek' => $uPrevTrayek,
+                        'stateKey' => $uState,
                         'edge' => $edge,
                     ];
-                    $pq->insert(['node' => $v, 'prev_trayek' => $nextPrevTrayek], -$alt);
+
+                    $pq->insert(
+                        ['node' => $v, 'prev_trayek' => $nextPrevTrayek, 'transfers' => $nextTransfers],
+                        -$alt
+                    );
                 }
             }
         }
 
         return null;
-    }
+}
+
+
 
     /* =========================
      *  Path -> Itinerary
@@ -395,57 +454,53 @@ class RouteFinder
         array $nodes,
         array $trayekLines
     ): array {
-        // Convert raw node-to-node edges into condensed segments
-        // Segment types: walk / angkot (group consecutive angkot edges w same trayek)
+        // 1) Edge list dari path
         $segmentsRaw = [];
-
         for ($i = 1; $i < count($path); $i++) {
-            $edge = $path[$i]['edge'];
+            $edge = $path[$i]['edge'] ?? null;
             if (!$edge) continue;
 
-            $fromNode = $path[$i - 1]['node'];
-            $toNode   = $path[$i]['node'];
-
             $segmentsRaw[] = [
-                'from' => $fromNode,
-                'to'   => $toNode,
+                'from' => $path[$i - 1]['node'],
+                'to'   => $path[$i]['node'],
                 'edge' => $edge,
             ];
         }
 
+        // 2) Condense jadi segmen walk/angkot
         $segments = [];
         $sigTrayeks = [];
-
         $i = 0;
+
         while ($i < count($segmentsRaw)) {
             $e = $segmentsRaw[$i]['edge'];
 
-            if ($e['type'] === 'walk') {
-                $from = $segmentsRaw[$i]['from'];
-                $to   = $segmentsRaw[$i]['to'];
-
-                $seg = $this->buildWalkSegment($from, $to, $nodes);
-                $segments[] = $seg;
+            if (($e['type'] ?? '') === 'walk') {
+                $segments[] = $this->buildWalkSegment(
+                    $segmentsRaw[$i]['from'],
+                    $segmentsRaw[$i]['to'],
+                    $nodes
+                );
                 $i++;
                 continue;
             }
 
-            // angkot: group consecutive same trayek
-            $trayekId = (int)$e['trayek_id'];
+            // angkot: gabung consecutive edges trayek yang sama
+            $trayekId = (int)($e['trayek_id'] ?? 0);
             $fromNode = $segmentsRaw[$i]['from'];
             $toNode   = $segmentsRaw[$i]['to'];
 
-            $fromIdx = $nodes[$fromNode]['idx'] ?? ($e['from_idx'] ?? null);
-            $toIdx   = $nodes[$toNode]['idx']   ?? ($e['to_idx'] ?? null);
+            $fromIdx = (int)($nodes[$fromNode]['idx'] ?? ($e['from_idx'] ?? 0));
+            $toIdx   = (int)($nodes[$toNode]['idx']   ?? ($e['to_idx'] ?? 0));
 
             $j = $i + 1;
             while ($j < count($segmentsRaw)) {
                 $e2 = $segmentsRaw[$j]['edge'];
-                if ($e2['type'] !== 'angkot') break;
-                if ((int)$e2['trayek_id'] !== $trayekId) break;
+                if (($e2['type'] ?? '') !== 'angkot') break;
+                if ((int)($e2['trayek_id'] ?? 0) !== $trayekId) break;
 
                 $toNode = $segmentsRaw[$j]['to'];
-                $toIdx  = $nodes[$toNode]['idx'] ?? ($e2['to_idx'] ?? $toIdx);
+                $toIdx  = (int)($nodes[$toNode]['idx'] ?? ($e2['to_idx'] ?? $toIdx));
                 $j++;
             }
 
@@ -453,8 +508,8 @@ class RouteFinder
                 $trayekId,
                 $fromNode,
                 $toNode,
-                (int)$fromIdx,
-                (int)$toIdx,
+                $fromIdx,
+                $toIdx,
                 $nodes,
                 $trayekLines
             );
@@ -463,40 +518,47 @@ class RouteFinder
             $i = $j;
         }
 
-        // Totalize
-        $totalDist = 0;
-        $totalDurMin = 0;
+        // 3) Totals
+        $totalDistanceM = 0;
+        $totalDurationMin = 0;
         $totalFare = 0;
 
         foreach ($segments as $s) {
-            $totalDist += (int)($s['distance_m'] ?? 0);
-            $totalDurMin += (int)($s['duration_min'] ?? 0);
+            $totalDistanceM += (int)($s['distance_m'] ?? 0);
+            $totalDurationMin += (int)($s['duration_min'] ?? 0);
             if (($s['type'] ?? '') === 'angkot') {
                 $totalFare += (int)($s['fare'] ?? 0);
             }
         }
 
+        // 4) map_geojson (FeatureCollection)
+        $features = [];
+        foreach ($segments as $s) {
+            if (!empty($s['geojson_feature'])) $features[] = $s['geojson_feature'];
+        }
+
+        $mapGeojson = [
+            'type' => 'FeatureCollection',
+            'features' => $features,
+        ];
+
+        // 5) Signature untuk dedup
         $signature = implode('-', $sigTrayeks) . '|' . count($segments);
 
         return [
+            'ok' => true,
             'variant' => $variantKey,
             'signature' => $signature,
-
-            'total_distance_m' => $totalDist,
-            'total_duration_min' => $totalDurMin,
+            'total_distance_m' => $totalDistanceM,
+            'total_duration_min' => $totalDurationMin,
             'total_fare' => $totalFare,
-
+            'total_fare_label' => $this->formatRupiah($totalFare),
             'segments' => $segments,
-
-            // Buat map: kumpulin geometry dari semua segmen (GeoJSON FeatureCollection)
-            'map_geojson' => [
-                'type' => 'FeatureCollection',
-                'features' => array_values(array_filter(array_map(function ($s) {
-                    return $s['geojson_feature'] ?? null;
-                }, $segments))),
-            ],
+            'map_geojson' => $mapGeojson,
         ];
     }
+
+
 
     private function buildWalkSegment(string $fromId, string $toId, array $nodes): array
     {
@@ -641,6 +703,110 @@ class RouteFinder
         return array_reverse($slice);
     }
 
+    private function fallbackDirectOneTrayek(float $latAsal, float $lngAsal, float $latTujuan, float $lngTujuan): array
+    {
+        $radius = 1200; // agak longgar biar ketemu dulu
+        $trayeks = Trayek::all();
+        $itins = [];
+
+        foreach ($trayeks as $trayek) {
+            $geo = json_decode($trayek->rute_json, true);
+            $coords = $geo['features'][0]['geometry']['coordinates'] ?? null;
+            if (!$coords || !is_array($coords)) continue;
+
+            $bestAsal = null;  $bestAsalD = INF;  $bestAsalIdx = null;
+            $bestTuju = null;  $bestTujuD = INF;  $bestTujuIdx = null;
+
+            foreach ($coords as $i => $pt) {
+                if (!is_array($pt) || count($pt) < 2) continue;
+                $lat = (float)$pt[1]; $lng = (float)$pt[0];
+
+                $dA = $this->haversine($latAsal, $lngAsal, $lat, $lng);
+                if ($dA < $bestAsalD) { $bestAsalD = $dA; $bestAsal = [$lat,$lng]; $bestAsalIdx = $i; }
+
+                $dT = $this->haversine($latTujuan, $lngTujuan, $lat, $lng);
+                if ($dT < $bestTujuD) { $bestTujuD = $dT; $bestTuju = [$lat,$lng]; $bestTujuIdx = $i; }
+            }
+
+            if ($bestAsalD > $radius || $bestTujuD > $radius) continue;
+
+            // slice polyline trayek dari idx asal ke idx tujuan
+            $lineLatLng = array_map(fn($p) => [(float)$p[1], (float)$p[0]], $coords);
+            $slice = $this->sliceTrayekLatLng($lineLatLng, (int)$bestAsalIdx, (int)$bestTujuIdx);
+
+            // bangun segmen: walk -> angkot -> walk
+            $nodes = [
+                '__o' => ['lat'=>$latAsal,'lng'=>$lngAsal],
+                '__a' => ['lat'=>$bestAsal[0],'lng'=>$bestAsal[1]],
+                '__b' => ['lat'=>$bestTuju[0],'lng'=>$bestTuju[1]],
+                '__d' => ['lat'=>$latTujuan,'lng'=>$lngTujuan],
+            ];
+
+            $walk1 = $this->buildWalkSegment('__o','__a',$nodes);
+
+            // angkot segmen pakai slice langsung (tanpa butuh nodes trayek)
+            $distM = 0;
+            for ($k=1; $k<count($slice); $k++) {
+                $distM += (int)round($this->haversine($slice[$k-1][0],$slice[$k-1][1],$slice[$k][0],$slice[$k][1]));
+            }
+            $km = $distM/1000.0;
+            $durMin = (int)max(1, ceil(($km/20.0)*60.0));
+            $fare = $this->tarifPerAngkotKm($km);
+
+            $angkot = [
+                'type' => 'angkot',
+                'trayek_id' => (int)$trayek->id,
+                'trayek_name' => (string)$trayek->nama_trayek,
+                'trayek_color' => (string)($trayek->warna_angkot ?? '#111827'),
+                'from' => ['lat'=>$bestAsal[0],'lng'=>$bestAsal[1],'name'=>$this->geoNamer->name($bestAsal[0],$bestAsal[1])],
+                'to'   => ['lat'=>$bestTuju[0],'lng'=>$bestTuju[1],'name'=>$this->geoNamer->name($bestTuju[0],$bestTuju[1])],
+                'distance_m' => $distM,
+                'duration_min' => $durMin,
+                'fare' => $fare,
+                'fare_label' => $this->formatRupiah($fare),
+                'instruction' => 'Naik '.(string)$trayek->nama_trayek,
+                'geojson_feature' => [
+                    'type'=>'Feature',
+                    'properties'=>['mode'=>'angkot','trayek_id'=>(int)$trayek->id,'name'=>(string)$trayek->nama_trayek,'color'=>(string)($trayek->warna_angkot ?? '#111827')],
+                    'geometry'=>[
+                        'type'=>'LineString',
+                        'coordinates'=>array_map(fn($p)=>[$p[1],$p[0]], $slice),
+                    ],
+                ],
+            ];
+
+            $walk2 = $this->buildWalkSegment('__b','__d',$nodes);
+
+            $segments = [$walk1, $angkot, $walk2];
+
+            $features = [];
+            foreach ($segments as $s) if (!empty($s['geojson_feature'])) $features[] = $s['geojson_feature'];
+
+            $totalDistanceM = array_sum(array_map(fn($s)=>(int)($s['distance_m']??0), $segments));
+            $totalDurationMin = array_sum(array_map(fn($s)=>(int)($s['duration_min']??0), $segments));
+            $totalFare = (int)($angkot['fare'] ?? 0);
+
+            $itins[] = [
+                'ok'=>true,
+                'variant'=>'fallback_direct',
+                'signature'=>'fallback-'.(int)$trayek->id,
+                'total_distance_m'=>$totalDistanceM,
+                'total_duration_min'=>$totalDurationMin,
+                'total_fare'=>$totalFare,
+                'total_fare_label'=>$this->formatRupiah($totalFare),
+                'segments'=>$segments,
+                'map_geojson'=>['type'=>'FeatureCollection','features'=>$features],
+            ];
+        }
+
+        // urutkan yang tercepat
+        usort($itins, fn($a,$b)=>$a['total_duration_min'] <=> $b['total_duration_min']);
+
+        // balikin max 3 biar enak
+        return array_slice($itins, 0, 3);
+    }
+
+
     /* =========================
      *  Helpers
      * ========================= */
@@ -668,4 +834,183 @@ class RouteFinder
     {
         return 'Rp ' . number_format($angka, 0, ',', '.');
     }
+
+    /**
+     * Cari titik terdekat dari (lat,lng) ke polyline trayek
+     * return ['lat','lng','dist_m','trayek_id']
+     */
+
+    private function snapPointToTrayekLine(float $lat, float $lng, array $trayekLines): ?array
+    {
+        $best = null;
+
+        foreach ($trayekLines as $trayekId => $tray) {
+            $coords = $tray['coords'] ?? [];
+            for ($i = 1; $i < count($coords); $i++) {
+                [$lat1, $lng1] = $coords[$i - 1];
+                [$lat2, $lng2] = $coords[$i];
+
+                $p = $this->projectPointToSegment($lat, $lng, $lat1, $lng1, $lat2, $lng2);
+
+                if (!$best || $p['dist_m'] < $best['dist_m']) {
+                    $best = [
+                        'lat' => $p['lat'],
+                        'lng' => $p['lng'],
+                        'dist_m' => $p['dist_m'],
+                        'trayek_id' => $trayekId,
+                    ];
+                }
+            }
+        }
+
+        return $best;
+    }
+
+    private function projectPointToSegment(
+        float $lat,
+        float $lng,
+        float $lat1,
+        float $lng1,
+        float $lat2,
+        float $lng2
+    ): array {
+        // planar approximation (cukup untuk skala kota)
+        $x = $lng;  $y = $lat;
+        $x1 = $lng1; $y1 = $lat1;
+        $x2 = $lng2; $y2 = $lat2;
+
+        $dx = $x2 - $x1;
+        $dy = $y2 - $y1;
+
+        if ($dx == 0.0 && $dy == 0.0) {
+            return [
+                'lat' => $lat1,
+                'lng' => $lng1,
+                'dist_m' => $this->haversine($lat, $lng, $lat1, $lng1),
+            ];
+        }
+
+        $t = (($x - $x1) * $dx + ($y - $y1) * $dy) / ($dx*$dx + $dy*$dy);
+        $t = max(0.0, min(1.0, $t));
+
+        $projLng = $x1 + $t * $dx;
+        $projLat = $y1 + $t * $dy;
+
+        return [
+            'lat' => $projLat,
+            'lng' => $projLng,
+            'dist_m' => $this->haversine($lat, $lng, $projLat, $projLng),
+        ];
+    }
+
+
+    private function directTrayekCandidates(
+        float $latAsal,
+        float $lngAsal,
+        float $latTujuan,
+        float $lngTujuan,
+        array $trayekLines,
+        int $max = 3,
+        int $radiusM = 1200
+    ): array {
+        $itins = [];
+
+        foreach ($trayekLines as $trayekId => $tray) {
+            // snap origin & dest ke polyline trayek yang sama
+            $snapA = $this->snapPointToTrayekLine($latAsal, $lngAsal, [$trayekId => $tray]);
+            $snapB = $this->snapPointToTrayekLine($latTujuan, $lngTujuan, [$trayekId => $tray]);
+
+            if (!$snapA || !$snapB) continue;
+            if ($snapA['dist_m'] > $radiusM || $snapB['dist_m'] > $radiusM) continue;
+
+            // nodes dummy untuk walk segment
+            $nodes = [
+                '__o' => ['lat' => $latAsal, 'lng' => $lngAsal],
+                '__a' => ['lat' => $snapA['lat'], 'lng' => $snapA['lng']],
+                '__b' => ['lat' => $snapB['lat'], 'lng' => $snapB['lng']],
+                '__d' => ['lat' => $latTujuan, 'lng' => $lngTujuan],
+            ];
+
+            $walk1 = $this->buildWalkSegment('__o', '__a', $nodes);
+
+            // angkot geometry: pakai slice antara titik terdekat di polyline (approx pakai nearest index)
+            // sederhana: ambil index terdekat di coords
+            $line = $tray['coords'] ?? [];
+            if (count($line) < 2) continue;
+
+            $bestIdxA = 0; $bestDA = INF;
+            $bestIdxB = 0; $bestDB = INF;
+            foreach ($line as $i => $p) {
+                $dA = $this->haversine($snapA['lat'], $snapA['lng'], $p[0], $p[1]);
+                if ($dA < $bestDA) { $bestDA = $dA; $bestIdxA = $i; }
+                $dB = $this->haversine($snapB['lat'], $snapB['lng'], $p[0], $p[1]);
+                if ($dB < $bestDB) { $bestDB = $dB; $bestIdxB = $i; }
+            }
+
+            $slice = $this->sliceTrayekLatLng($line, $bestIdxA, $bestIdxB);
+
+            $distM = 0;
+            for ($k = 1; $k < count($slice); $k++) {
+                $distM += (int)round($this->haversine($slice[$k-1][0], $slice[$k-1][1], $slice[$k][0], $slice[$k][1]));
+            }
+
+            $km = $distM / 1000.0;
+            $durMin = (int)max(1, ceil(($km / 20.0) * 60.0));
+            $fare = $this->tarifPerAngkotKm($km);
+
+            $angkot = [
+                'type' => 'angkot',
+                'trayek_id' => (int)$trayekId,
+                'trayek_name' => $tray['name'] ?? 'Angkot',
+                'trayek_color' => $tray['color'] ?? '#111827',
+                'from' => ['lat' => $snapA['lat'], 'lng' => $snapA['lng'], 'name' => $this->geoNamer->name($snapA['lat'], $snapA['lng'])],
+                'to'   => ['lat' => $snapB['lat'], 'lng' => $snapB['lng'], 'name' => $this->geoNamer->name($snapB['lat'], $snapB['lng'])],
+                'distance_m' => $distM,
+                'duration_min' => $durMin,
+                'fare' => $fare,
+                'fare_label' => $this->formatRupiah($fare),
+                'instruction' => 'Naik ' . ($tray['name'] ?? 'Angkot'),
+                'geojson_feature' => [
+                    'type' => 'Feature',
+                    'properties' => [
+                        'mode' => 'angkot',
+                        'trayek_id' => (int)$trayekId,
+                        'name' => ($tray['name'] ?? 'Angkot'),
+                        'color' => ($tray['color'] ?? '#111827'),
+                    ],
+                    'geometry' => [
+                        'type' => 'LineString',
+                        'coordinates' => array_map(fn($p) => [$p[1], $p[0]], $slice),
+                    ],
+                ],
+            ];
+
+            $walk2 = $this->buildWalkSegment('__b', '__d', $nodes);
+
+            $segments = [$walk1, $angkot, $walk2];
+
+            $features = [];
+            foreach ($segments as $s) if (!empty($s['geojson_feature'])) $features[] = $s['geojson_feature'];
+
+            $totalDistanceM = array_sum(array_map(fn($s) => (int)($s['distance_m'] ?? 0), $segments));
+            $totalDurationMin = array_sum(array_map(fn($s) => (int)($s['duration_min'] ?? 0), $segments));
+
+            $itins[] = [
+                'ok' => true,
+                'variant' => 'direct_trayek',
+                'signature' => 'direct-' . (int)$trayekId,
+                'total_distance_m' => $totalDistanceM,
+                'total_duration_min' => $totalDurationMin,
+                'total_fare' => (int)$fare,
+                'total_fare_label' => $this->formatRupiah((int)$fare),
+                'segments' => $segments,
+                'map_geojson' => ['type' => 'FeatureCollection', 'features' => $features],
+            ];
+        }
+
+        usort($itins, fn($a, $b) => $a['total_duration_min'] <=> $b['total_duration_min']);
+        return array_slice($itins, 0, $max);
+    }
+
+
 }
