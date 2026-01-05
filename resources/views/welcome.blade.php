@@ -94,28 +94,28 @@
                 </p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <!-- Fitur 1: Navigasi (Cari Rute) -->
                 <a href="{{ route('passenger.dashboard') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
                     <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
-                        <i data-lucide="map" class="w-8 h-8"></i>
+                        <i data-lucide="rocket" class="w-8 h-8"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Cari Rute</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Temukan angkot yang tepat dari titik A ke B dengan estimasi harga & waktu.</p>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Mulai Perjalanan</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Rencanakan rute harian Anda dengan cerdas.</p>
                     <span class="text-blue-600 font-black text-sm flex items-center gap-2 group-hover:gap-3 transition-all">
-                        Coba Sekarang <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        Mulai <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </span>
                 </a>
 
                 <!-- Fitur 2: Lihat Trayek -->
                 <a href="{{ route('passenger.trayek.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
-                    <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
+                    <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
                         <i data-lucide="signpost" class="w-8 h-8"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">Info Trayek</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Data lengkap seluruh rute angkot Bandung dan posisi armada realtime.</p>
-                    <span class="text-emerald-600 font-black text-sm flex items-center gap-2 group-hover:gap-3 transition-all">
-                        Lihat Peta <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Lihat Trayek</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Data lengkap 100+ trayek aktif di Bandung.</p>
+                    <span class="text-purple-600 font-black text-sm flex items-center gap-2 group-hover:gap-3 transition-all">
+                        Lihat Semua <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </span>
                 </a>
                 
@@ -125,9 +125,21 @@
                         <i data-lucide="book-open" class="w-8 h-8"></i>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-3">Edukasi</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Tips aman, panduan, dan FAQ untuk pengalaman ngangkot yang lebih baik.</p>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Panduan bertransportasi yang aman dan nyaman.</p>
                     <span class="text-amber-600 font-black text-sm flex items-center gap-2 group-hover:gap-3 transition-all">
                         Baca Tips <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </span>
+                </a>
+
+                <!-- Fitur 4: Lapor Dinas -->
+                <a href="{{ route('passenger.laporan.index') }}" class="group bg-slate-50 p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 block">
+                    <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform shadow-sm">
+                        <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Lapor Dinas</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-6 font-medium">Sampaikan keluhan terkait fasilitas & layanan.</p>
+                    <span class="text-rose-600 font-black text-sm flex items-center gap-2 group-hover:gap-3 transition-all">
+                        Buat Laporan <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </span>
                 </a>
             </div>

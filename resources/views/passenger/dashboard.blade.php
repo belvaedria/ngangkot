@@ -144,6 +144,24 @@
         </a>
       </div>
     </div>
+  @else
+    {{-- LAPOR DINAS card for authenticated users --}}
+    <div class="fixed bottom-6 right-6 z-50 pointer-events-auto">
+      <div class="w-80 rounded-3xl bg-white/95 backdrop-blur-xl shadow-2xl border border-white/70 p-6 text-center">
+        <div class="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="alert-triangle" class="w-8 h-8 text-rose-500"></i>
+        </div>
+        <h3 class="text-xl font-black text-slate-900 mb-2">Lapor Dinas</h3>
+        <p class="text-sm text-slate-600 mb-5">
+          Sampaikan keluhan terkait fasilitas & layanan.
+        </p>
+        <a href="{{ route('passenger.laporan.create') }}"
+           class="inline-flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition">
+          Buat Laporan
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+    </div>
   @endif
 @endif
 

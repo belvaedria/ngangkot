@@ -28,7 +28,30 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Mapping dari input form ke role database
+        $loginAs = $request->input('login_as', 'wargi');
+        $roleMapping = [
+            'wargi' => 'passenger',
+            'driver' => 'driver',
+            'admin' => 'admin',
+        ];
+        $mappedRole = $roleMapping[$loginAs] ?? 'passenger';
+        $userRole = Auth::user()->role;
+
+        // Cek apakah role yang dipilih sesuai dengan role user
+        if ($mappedRole !== $userRole) {
+            Auth::logout();
+            return back()->withErrors([
+                'email' => 'Role yang dipilih tidak sesuai dengan akun Anda. Silakan pilih role yang benar.',
+            ])->withInput($request->only('email'));
+        }
+
+        // Redirect berdasarkan role
+        return match($userRole) {
+            'admin' => redirect()->intended(route('admin.dashboard')),
+            'driver' => redirect()->intended(route('driver.dashboard')),
+            default => redirect()->intended(route('passenger.dashboard')),
+        };
     }
 
     /**

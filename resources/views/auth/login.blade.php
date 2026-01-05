@@ -1,47 +1,82 @@
 <x-guest-layout>
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-slate-900">Selamat Datang</h1>
+        <p class="text-slate-500 text-sm mt-1">Pintu gerbang transportasi cerdas Bandung.</p>
+    </div>
+
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login') }}" class="space-y-5" x-data="{ loginAs: 'wargi' }">
         @csrf
 
         <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <div class="relative">
+                <i data-lucide="mail" class="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                    class="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-200 bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                    placeholder="Email Address" />
+            </div>
+            @error('email')
+                <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
         <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div>
+            <div class="relative">
+                <i data-lucide="lock" class="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                <input id="password" type="password" name="password" required autocomplete="current-password"
+                    class="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-200 bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
+                    placeholder="Password" />
+            </div>
+            @error('password')
+                <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
+        <!-- Login As Toggle -->
+        <div>
+            <p class="text-xs font-bold text-slate-400 text-center mb-3 uppercase tracking-widest">Login Sebagai</p>
+            <div class="flex items-center justify-center gap-3">
+                <button type="button" 
+                        @click="loginAs = 'wargi'"
+                        :class="loginAs === 'wargi' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'"
+                        class="px-8 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none">
+                    WARGI
+                </button>
+                <button type="button" 
+                        @click="loginAs = 'driver'"
+                        :class="loginAs === 'driver' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'"
+                        class="px-8 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none">
+                    DRIVER
+                </button>
+                <button type="button" 
+                        @click="loginAs = 'admin'"
+                        :class="loginAs === 'admin' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'"
+                        class="px-8 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none">
+                    ADMIN
+                </button>
+            </div>
+            <input type="hidden" name="login_as" :value="loginAs">
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
+        <!-- Submit Button -->
+        <button type="submit"
+            class="w-full py-3.5 rounded-2xl bg-blue-600 text-white font-bold tracking-tight shadow-lg hover:bg-blue-700 transition text-base">
+            Masuk Sekarang
+        </button>
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
+        <!-- Register Link -->
+        <p class="text-center text-sm text-slate-500">
+            Belum punya akun? <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-800 font-bold">Daftar Akun Baru</a>
+        </p>
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
 </x-guest-layout>
