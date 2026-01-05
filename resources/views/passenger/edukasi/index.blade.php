@@ -1,9 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.app_dashboard')
+@include('layouts.menus.passenger')
 
 @section('title', 'Pusat Edukasi Ngangkot')
 
 @section('content')
-<div class="bg-slate-50 min-h-screen py-12 px-6">
+<div class="flex-1 overflow-y-auto custom-scroll p-6 md:p-10">
     <div class="max-w-6xl mx-auto">
 
         <div class="text-center mb-16">

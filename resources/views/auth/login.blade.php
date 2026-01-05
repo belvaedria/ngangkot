@@ -41,10 +41,10 @@
             <p class="text-xs font-bold text-slate-400 text-center mb-3 uppercase tracking-widest">Login Sebagai</p>
             <div class="flex items-center justify-center gap-3">
                 <button type="button" 
-                        @click="loginAs = 'warga'"
-                        :class="loginAs === 'warga' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'"
+                        @click="loginAs = 'wargi'"
+                        :class="loginAs === 'wargi' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-400 border border-slate-100'"
                         class="px-8 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none">
-                    WARGI
+                    WARGA
                 </button>
                 <button type="button" 
                         @click="loginAs = 'driver'"
@@ -58,7 +58,7 @@
                         class="px-8 py-3 rounded-2xl font-bold text-sm transition-all duration-300 focus:outline-none">
                     ADMIN
                 </button>
-            </div>
+            </div> 
             <input type="hidden" name="login_as" :value="loginAs">
         </div>
 
