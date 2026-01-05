@@ -44,25 +44,24 @@ class RouteFinder
         [$nodes, $edges, $trayekLines] = $this->buildGraph($walkRadius);
 
         // Tambah node origin & dest
-        // === SNAP origin ke trayek terdekat ===
-        $snapOrigin = $this->snapPointToTrayekLine($latAsal, $lngAsal, $trayekLines);
-        if (!$snapOrigin) return [];
-
         $nodes['__origin__'] = [
-            'lat' => $snapOrigin['lat'],
-            'lng' => $snapOrigin['lng'],
+            'lat' => $latAsal,
+            'lng' => $lngAsal,
             'type' => 'origin',
         ];
 
-        // === SNAP destination ke trayek terdekat ===
-        $snapDest = $this->snapPointToTrayekLine($latTujuan, $lngTujuan, $trayekLines);
-        if (!$snapDest) return [];
-
         $nodes['__dest__'] = [
-            'lat' => $snapDest['lat'],
-            'lng' => $snapDest['lng'],
+            'lat' => $latTujuan,
+            'lng' => $lngTujuan,
             'type' => 'dest',
         ];
+
+        $edges['__origin__'] = [];
+        $edges['__dest__']   = [];
+
+        // Connect origin/dest ke node trayek sekitar (walk)
+        $this->connectVirtualNodeToGraph('__origin__', $latAsal, $lngAsal, $nodes, $edges, $walkRadius);
+        $this->connectVirtualNodeToGraph('__dest__', $latTujuan, $lngTujuan, $nodes, $edges, $walkRadius);
 
         $edges['__origin__'] = [];
         $edges['__dest__'] = [];

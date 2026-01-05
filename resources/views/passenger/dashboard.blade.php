@@ -62,40 +62,55 @@
                                     <input type="hidden" name="nama_asal" id="nama_asal">
                                     <input type="hidden" name="nama_tujuan" id="nama_tujuan">
 
-                                    <div class="relative">
-                                        <label class="text-xs font-bold text-slate-600">Lokasi Awal</label>
-                                        <input
+                                    <div class="relative group">
+                                    <label class="text-xs font-bold text-slate-600">Lokasi Awal</label>
+
+                                    <input
                                         id="input_asal"
                                         type="text"
-                                        value="{{ old('nama_asal', $asal ?? '') }}"
-                                        class="w-full mt-1 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                        placeholder="Masukkan lokasi awal..."
-                                        autocomplete="off"
-                                        />
+                                        class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
+                                        ...
+                                    />
 
-                                        <div id="suggestions_asal"
-                                            class="absolute top-full left-0 z-[9999] mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl hidden max-h-64 overflow-y-auto">
-                                        </div>
+                                    {{-- tombol X --}}
+                                    <button
+                                        type="button"
+                                        data-clear="asal"
+                                        class="absolute right-3 top-[38px] flex items-center justify-center
+                                        w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600
+                                        opacity-0 pointer-events-none transition
+                                        group-focus-within:opacity-100 group-focus-within:pointer-events-auto peer
+                                        peer-placeholder-shown:opacity-0 peer-placeholder-shown:pointer-events-none"
+                                    >
+                                        ✕
+                                    </button>
                                     </div>
+
 
                                     {{-- Tujuan + autocomplete --}}
-                                    <div class="relative">
-                                        <label class="text-xs font-bold text-slate-600">Lokasi tujuan</label>
-                                        <input
+                                    <div class="relative group">
+                                    <label class="text-xs font-bold text-slate-600">Lokasi tujuan</label>
+
+                                    <input
                                         id="input_tujuan"
                                         type="text"
-                                        value="{{ old('nama_tujuan', $tujuan ?? '') }}"
-                                        class="w-full mt-1 px-4 py-3 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                        placeholder="Masukkan tujuan Anda..."
-                                        autocomplete="off"
-                                        />
+                                        class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
+                                        ...
+                                    />
 
-
-                                        {{-- Dropdown autocomplete --}}
-                                        <div id="suggestions"
-                                            class="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl hidden max-h-64 overflow-y-auto">
-                                        </div>
+                                    <button
+                                        type="button"
+                                        data-clear="tujuan"
+                                        class="absolute right-3 top-[38px] flex items-center justify-center
+                                        w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600
+                                        opacity-0 pointer-events-none transition
+                                        group-focus-within:opacity-100 group-focus-within:pointer-events-auto peer
+                                        peer-placeholder-shown:opacity-0 peer-placeholder-shown:pointer-events-none"
+                                    >
+                                        ✕
+                                    </button>
                                     </div>
+
 
                                     <button
                                         type="submit"
@@ -191,40 +206,54 @@
                                     <input type="hidden" name="nama_asal" id="nama_asal">
                                     <input type="hidden" name="nama_tujuan" id="nama_tujuan">
 
-                                    <div class="relative">
-                                        <label class="text-xs font-bold text-slate-600">Lokasi awal</label>
-                                        <input
+                                    <div class="relative group">
+                                    <label class="text-xs font-bold text-slate-600">Lokasi Awal</label>
+
+                                    <input
                                         id="input_asal"
                                         type="text"
-                                        value="{{ old('nama_asal', $asal ?? '') }}"
-                                        class="w-full mt-1 px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                        placeholder="Masukkan lokasi awal..."
-                                        autocomplete="off"
-                                        />
-
-                                        <div id="suggestions_asal"
-                                            class="absolute top-full left-0 z-[9999] mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl hidden max-h-64 overflow-y-auto">
-                                        </div>
-                                    </div>
-
-                                {{-- Tujuan + autocomplete --}}
-                                <div class="relative">
-                                    <label class="text-xs font-bold text-slate-600">Lokasi tujuan</label>
-                                    <input
-                                    id="input_tujuan"
-                                    type="text"
-                                    value="{{ old('nama_tujuan', $tujuan ?? '') }}"
-                                    class="w-full mt-1 px-4 py-3 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                    placeholder="Masukkan tujuan Anda..."
-                                    autocomplete="off"
+                                        class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
+                                        ...
                                     />
 
-
-                                    {{-- Dropdown autocomplete --}}
-                                    <div id="suggestions"
-                                        class="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl hidden max-h-64 overflow-y-auto">
+                                    {{-- tombol X --}}
+                                    <button
+                                        type="button"
+                                        data-clear="asal"
+                                        class="absolute right-3 top-[38px] flex items-center justify-center
+                                        w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600
+                                        opacity-0 pointer-events-none transition
+                                        group-focus-within:opacity-100 group-focus-within:pointer-events-auto peer
+                                        peer-placeholder-shown:opacity-0 peer-placeholder-shown:pointer-events-none"
+                                    >
+                                        ✕
+                                    </button>
                                     </div>
-                                </div>
+
+
+                                    {{-- Tujuan + autocomplete --}}
+                                    <div class="relative group">
+                                    <label class="text-xs font-bold text-slate-600">Lokasi tujuan</label>
+
+                                    <input
+                                        id="input_tujuan"
+                                        type="text"
+                                        class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
+                                        ...
+                                    />
+
+                                    <button
+                                        type="button"
+                                        data-clear="tujuan"
+                                        class="absolute right-3 top-[38px] flex items-center justify-center
+                                        w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600
+                                        opacity-0 pointer-events-none transition
+                                        group-focus-within:opacity-100 group-focus-within:pointer-events-auto peer
+                                        peer-placeholder-shown:opacity-0 peer-placeholder-shown:pointer-events-none"
+                                    >
+                                        ✕
+                                    </button>
+                                    </div>
 
                                 <button
                                     type="submit"
@@ -255,22 +284,36 @@
                             <p class="text-sm text-slate-600 mt-1">Coba titik tujuan lain yang lebih spesifik.</p>
                             </div>
                         @else
+
+                        @php
+                        function optionTitle($variant, $segments) {
+                            $angkotCount = collect($segments)->where('type','angkot')->count();
+                            $transferCount = max(0, $angkotCount - 1);
+
+                            if ($variant === 'min_time') return 'Paling cepat';
+                            if ($variant === 'direct_trayek') return $transferCount === 0 ? 'Langsung (tanpa pindah)' : "{$transferCount}x pindah";
+
+                            return $transferCount === 0 ? 'Rute rekomendasi' : "{$transferCount}x pindah";
+                        }
+                        @endphp
+
+
+
                             @foreach($hasilRute as $idx => $route)
                             <details
                             class="rounded-2xl border border-slate-200 bg-white overflow-hidden"
                             data-geojson='@json($route["map_geojson"] ?? ["type"=>"FeatureCollection","features"=>[]])'
                             >
-                                <summary class="p-4 cursor-pointer">
-                                    <p class="font-black">
-                                        Opsi {{ $idx + 1 }} • {{ $route['variant'] }}
-                                    </p>
-                                    <p class="text-xs text-slate-600">
-                                        {{ $route['total_duration_min'] }} min •
-                                        {{ number_format($route['total_distance_m']/1000,1) }} km •
-                                        Rp {{ number_format($route['total_fare']) }}
-                                    </p>
-                                </summary>
-
+                            <summary class="p-4 cursor-pointer">
+                            <p class="font-black">
+                                Opsi {{ $idx + 1 }} • {{ optionTitle($route['variant'] ?? '', $route['segments'] ?? []) }}
+                            </p>
+                            <p class="text-xs text-slate-600">
+                                {{ $route['total_duration_min'] }} min •
+                                {{ number_format($route['total_distance_m']/1000,1) }} km •
+                                Rp {{ number_format($route['total_fare']) }}
+                            </p>
+                            </summary>
 
                                 <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
                                 @foreach($route['segments'] as $step)
@@ -309,7 +352,10 @@
 
     // --- MAP ---
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-6.917464, 107.619122], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(this.map);
 
     window.addEventListener('collapse-dashboard-sidebar', () => {
         setTimeout(() => map.invalidateSize(), 250);
@@ -530,6 +576,22 @@
         validateForm();
     }
 
+    document.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const type = btn.dataset.clear;
+
+        if (type === 'asal') {
+        document.getElementById('input_asal').value = '';
+        resetAsalState();
+        }
+
+        if (type === 'tujuan') {
+        document.getElementById('input_tujuan').value = '';
+        resetTujuanState();
+        }
+    });
+    });
+
     let activePolyline = null;
     let activeMarkers = [];
 
@@ -548,12 +610,16 @@
         const geo = JSON.parse(dt.dataset.geojson);
 
         activePolyline = L.geoJSON(geo, {
-        style: f => ({
-            color: f.properties?.mode === 'walk' ? '#64748b' : f.properties?.color,
-            weight: f.properties?.mode === 'walk' ? 3 : 6,
-            dashArray: f.properties?.mode === 'walk' ? '4,6' : null
-        })
+            // ini kuncinya ↓
+            smoothFactor: 0,
+
+            style: f => ({
+                color: f.properties?.mode === 'walk' ? '#64748b' : f.properties?.color,
+                weight: f.properties?.mode === 'walk' ? 3 : 6,
+                dashArray: f.properties?.mode === 'walk' ? '4,6' : null
+            })
         }).addTo(map);
+
 
         map.fitBounds(activePolyline.getBounds(), { padding: [40,40] });
     });

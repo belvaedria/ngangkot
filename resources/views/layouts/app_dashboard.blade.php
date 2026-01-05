@@ -42,6 +42,63 @@
         [x-cloak] { display: none !important; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .route-list { display: grid; gap: 12px; }
+
+        .route-card{
+        width: 100%;
+        text-align: left;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 14px;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .route-card__title{
+        font-weight: 700;
+        font-size: 16px;
+        color: #0f172a;
+        }
+
+        .route-card__meta{
+        margin-top: 4px;
+        font-size: 13px;
+        color: #64748b;
+        }
+
+        .route-card__chips{
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        }
+
+        .chip{
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        font-size: 13px;
+        line-height: 1;
+        background: #fff;
+        }
+
+        .chip__icon{ font-size: 14px; }
+        .chip__text{ font-weight: 600; color: #0f172a; }
+        .chip__sub{ font-size: 12px; color: #64748b; }
+
+        .chip--walk{
+        background: #f8fafc;
+        }
+
+        .chip--angkot{
+        border-color: color-mix(in srgb, var(--chipColor) 40%, #e5e7eb);
+        background: color-mix(in srgb, var(--chipColor) 14%, #ffffff);
+        }
+
     </style>
 </head>
 <body

@@ -54,8 +54,7 @@ class WalkRouter
 
             $url = "{$this->baseUrl}/route/v1/foot/{$fromLng},{$fromLat};{$toLng},{$toLat}";
 
-            $res = Http::timeout(8)
-                ->retry(2, 250)
+            $res = Http::timeout(15)->retry(2, 400)
                 ->withHeaders([
                     // beberapa endpoint publik suka rewel kalau UA kosong
                     'User-Agent' => 'Ngangkot/1.0 (local dev)',
@@ -101,14 +100,17 @@ class WalkRouter
 
     private function fallbackStraight(float $fromLat, float $fromLng, float $toLat, float $toLng): array
     {
-        $dist = $this->haversine($fromLat, $fromLng, $toLat, $toLng);
+        $distM = (int) round($this->haversine($fromLat, $fromLng, $toLat, $toLng));
+
+        // asumsi jalan kaki 80 m/menit 
+        $durMin = (int) max(1, ceil($distM / 80));
 
         return [
             'ok' => true,
             'provider' => 'fallback_direct',
-            'distance_m' => (int) $distM,
+            'distance_m' => $distM,
             'duration_s' => (float) ($durMin * 60),
-            'duration_min' => (int) $durMin,
+            'duration_min' => $durMin,
             'geometry' => [
                 'type' => 'LineString',
                 'coordinates' => [
@@ -118,8 +120,6 @@ class WalkRouter
             ],
             'steps' => [],
         ];
-
-
     }
 
     private function haversine(float $lat1, float $lng1, float $lat2, float $lng2): float
