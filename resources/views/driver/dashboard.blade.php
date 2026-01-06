@@ -77,25 +77,37 @@
         {{-- Right Sidebar --}}
         <div class="space-y-6">
             
-            {{-- Online Status Card --}}
-            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl shadow-lg p-8 text-center text-white">
-                <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="{{ $isOnline ? 'zap' : 'zap-off' }}" class="w-10 h-10 text-emerald-600"></i>
-                </div>
-                <h3 class="text-2xl font-black mb-2">{{ $isOnline ? 'ONLINE' : 'OFFLINE' }}</h3>
-                <p class="text-emerald-100 text-sm mb-6">
-                    {{ $isOnline ? 'Kamu sedang dalam perjalanan' : 'Mulai narik sekarang' }}
-                </p>
-                @if($isOnline)
-                    <button class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition">
-                        Akhiri Tugas
-                    </button>
-                @else
-                    <a href="{{ route('driver.tracking.index') }}" class="block w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition">
-                        Mulai Narik
-                    </a>
-                @endif
-            </div>
+        {{-- Online Status Card --}}
+        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl shadow-lg p-8 text-center text-white">
+        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="{{ $isOnline ? 'zap' : 'zap-off' }}" class="w-10 h-10 text-emerald-600"></i>
+        </div>
+
+        <h3 class="text-2xl font-black mb-2">{{ $isOnline ? 'ONLINE' : 'OFFLINE' }}</h3>
+        <p class="text-emerald-100 text-sm mb-6">
+            {{ $isOnline ? 'Kamu sedang dalam perjalanan' : 'Mulai narik sekarang' }}
+        </p>
+
+        @if($isOnline)
+            <form method="POST" action="{{ route('driver.tracking.status') }}">
+            @csrf
+            <input type="hidden" name="status" value="nonaktif">
+            <button type="submit"
+                class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition">
+                Stop Narik
+            </button>
+            </form>
+        @else
+            <form method="POST" action="{{ route('driver.tracking.status') }}">
+            @csrf
+            <input type="hidden" name="status" value="aktif">
+            <button type="submit"
+                class="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition">
+                Mulai Narik
+            </button>
+            </form>
+        @endif
+        </div>
 
             {{-- Notifikasi Card --}}
             <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6">
@@ -129,10 +141,74 @@
         </div>
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
+    lucide.createIcons();
+
+    const isOnline = @json($isOnline);
+    const csrf = @json(csrf_token());
+    const urlUpdateLokasi = @json(route('driver.tracking.lokasi'));
+
+    let watchId = null;
+    let lastSent = 0;
+
+    function startWatch() {
+        if (!navigator.geolocation) {
+        console.error('Geolocation tidak didukung browser.');
+        return;
+        }
+
+        watchId = navigator.geolocation.watchPosition(async (pos) => {
+        const now = Date.now();
+        if (now - lastSent < 3000) return; // throttle 3 detik
+        lastSent = now;
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        try {
+            const res = await fetch(urlUpdateLokasi, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ lat, lng })
+            });
+
+            // kalau backend bilang error (misal driver udah stop), hentikan watch
+            if (!res.ok) {
+            console.warn('Update lokasi gagal, stop watch. HTTP', res.status);
+            stopWatch();
+            }
+        } catch (e) {
+            console.error('Error kirim lokasi:', e);
+        }
+        }, (err) => {
+        console.error('Geolocation error:', err);
+        }, {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 10000
+        });
+    }
+
+    function stopWatch() {
+        if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        }
+    }
+
+    // kalau dashboard kebuka dalam kondisi ONLINE, langsung mulai share lokasi
+    if (isOnline) startWatch();
+
+    // safety: stop watch saat tab ditutup/refresh
+    window.addEventListener('beforeunload', stopWatch);
     });
 </script>
-@endsection
+@endpush

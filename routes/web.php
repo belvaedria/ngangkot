@@ -112,6 +112,8 @@ Route::middleware(['auth'])->group(function () {
     // DRIVER locked
     Route::prefix('driver')->name('driver.')->middleware('role:driver')->group(function () {
         Route::get('/home', [DrvDashboard::class, 'index'])->name('dashboard');
+        Route::post('/tracking/status', [DrvTracking::class, 'updateStatus'])->name('tracking.status');
+        Route::post('/tracking/lokasi', [DrvTracking::class, 'updateLokasi'])->name('tracking.lokasi');
         Route::resource('tracking', DrvTracking::class)->only(['index', 'store']);
         Route::resource('angkot', DrvAngkot::class);
         Route::resource('riwayat', DrvRiwayat::class)->only(['index']);

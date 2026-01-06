@@ -69,8 +69,14 @@
                                         id="input_asal"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        ...
+                                        suggest="off"
                                     />
+
+                                      <!-- dropdown list -->
+                                    <div
+                                        id="suggestions_asal"
+                                        class="absolute left-0 right-0 mt-2 hidden max-h-72 overflow-auto rounded-2xl bg-white shadow-xl border border-slate-200 z-[9999]"
+                                    ></div>
 
                                     {{-- tombol X --}}
                                     <button
@@ -95,8 +101,14 @@
                                         id="input_tujuan"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        ...
+                                        suggest="off"
                                     />
+
+                                      <!-- dropdown list -->
+                                    <div
+                                        id="suggestions"
+                                        class="absolute left-0 right-0 mt-2 hidden max-h-72 overflow-auto rounded-2xl bg-white shadow-xl border border-slate-200 z-[9999]"
+                                    ></div>
 
                                     <button
                                         type="button"
@@ -213,8 +225,15 @@
                                         id="input_asal"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        ...
+                                        suggest="off"
                                     />
+
+                                   <!-- dropdown list -->
+                                    <div
+                                        id="suggestions_asal"
+                                        class="absolute left-0 right-0 mt-2 hidden max-h-72 overflow-auto rounded-2xl bg-white shadow-xl border border-slate-200 z-[9999]"
+                                    ></div>
+
 
                                     {{-- tombol X --}}
                                     <button
@@ -239,8 +258,13 @@
                                         id="input_tujuan"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        ...
+                                        suggest="off"
                                     />
+
+                                    <div
+                                        id="suggestions"
+                                        class="absolute left-0 right-0 mt-2 hidden max-h-72 overflow-auto rounded-2xl bg-white shadow-xl border border-slate-200 z-[9999]"
+                                    ></div>
 
                                     <button
                                         type="button"
@@ -356,6 +380,8 @@
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
     }).addTo(this.map);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     window.addEventListener('collapse-dashboard-sidebar', () => {
         setTimeout(() => map.invalidateSize(), 250);
