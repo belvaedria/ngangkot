@@ -17,9 +17,6 @@ class DashboardController extends Controller {
             ->whereDate('waktu_mulai', Carbon::today())
             ->count();
         
-        // Hitung pendapatan hari ini (estimasi Rp 5000 per trip)
-        $pendapatanHariIni = $tripHariIni * 5000;
-        
         // Status online (cek apakah ada tracking aktif)
         $isOnline = RiwayatPengemudi::where('user_id', $user->id)
             ->whereNull('waktu_selesai')
@@ -27,6 +24,6 @@ class DashboardController extends Controller {
         
         $riwayatTerbaru = RiwayatPengemudi::where('user_id', $user->id)->latest()->take(5)->get();
 
-        return view('driver.dashboard', compact('statusAkun', 'angkot', 'tripHariIni', 'pendapatanHariIni', 'isOnline', 'riwayatTerbaru'));
+        return view('driver.dashboard', compact('statusAkun', 'angkot', 'tripHariIni', 'isOnline', 'riwayatTerbaru'));
     }
 }

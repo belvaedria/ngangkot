@@ -18,7 +18,6 @@ use App\Http\Controllers\Driver\AngkotController as DrvAngkot;
 use App\Http\Controllers\Driver\RiwayatController as DrvRiwayat;
 use App\Http\Controllers\Driver\EdukasiController as DrvEdukasi;
 use App\Http\Controllers\Driver\CekJalurController as DrvCekJalur;
-use App\Http\Controllers\Driver\ProfilArmadaController as DrvProfil;
 
 // Admin
 use App\Http\Controllers\Admin\TrayekController as AdmTrayek;
@@ -126,11 +125,6 @@ Route::middleware(['auth'])->group(function () {
         // Cek Jalur
         Route::get('/cek-jalur', [DrvCekJalur::class, 'index'])->name('cekjalur.index');
         Route::get('/cek-jalur/{kode}', [DrvCekJalur::class, 'show'])->name('cekjalur.show');
-        
-        // Profil Armada
-        Route::get('/profil', [DrvProfil::class, 'index'])->name('profil.index');
-        Route::get('/profil/edit', [DrvProfil::class, 'edit'])->name('profil.edit');
-        Route::put('/profil', [DrvProfil::class, 'update'])->name('profil.update');
     });
 
     // ADMIN locked

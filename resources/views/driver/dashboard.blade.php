@@ -40,10 +40,10 @@
                     <p class="text-sm text-blue-600 font-semibold">Putaran</p>
                 </div>
 
-                {{-- Pendapatan --}}
+                {{-- Jarak Tempuh --}}
                 <div class="bg-emerald-50 border border-emerald-100 rounded-3xl shadow-sm p-6">
-                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">Pendapatan</p>
-                    <h2 class="text-4xl font-black text-emerald-700 mb-1">Rp {{ number_format($pendapatanHariIni / 1000) }}k</h2>
+                    <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">Jarak Tempuh</p>
+                    <h2 class="text-4xl font-black text-emerald-700 mb-1">0 km</h2>
                     <p class="text-sm text-emerald-600 font-semibold">Hari ini</p>
                 </div>
             </div>
