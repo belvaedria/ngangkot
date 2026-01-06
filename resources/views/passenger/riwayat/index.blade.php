@@ -105,8 +105,7 @@
                     <input type="hidden" name="lng_tujuan" value="{{ explode(',', $fav->tujuan_coords)[1] }}">
                     <input type="hidden" name="nama_asal" value="{{ $fav->asal_nama }}">
                     <input type="hidden" name="nama_tujuan" value="{{ $fav->tujuan_nama }}">
-                    <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                        <i data-lucide="star" class="w-5 h-5"></i>
+                    <div class="w-12 h-12 rounded-xl bg-yellow-200 text-amber-700 flex items-center justify-center shrink-0">
                     </div>
                     <div class="flex-1">
                         <p class="text-xs font-black text-amber-700">{{ $fav->nama_label }}</p>
