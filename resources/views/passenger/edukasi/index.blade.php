@@ -31,198 +31,137 @@
 
         <div id="cardsContainer" class="grid md:grid-cols-3 gap-8">
 
-            <!-- TIPS -->
+            {{-- TIPS - dari database --}}
+            @forelse($tips as $tip)
             <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="tips">
                 <div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                    <i data-lucide="lightbulb" class="w-8 h-8"></i>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4 text-left">Tips Aman & Nyaman</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Selalu dekap tas di depan tubuh saat duduk.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Siapkan uang pas sebelum sampai tujuan.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Hindari bermain HP di dekat pintu angkot.
-                    </li>
-                </ul>
-            </div>
-
-            <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="tips">
-                <div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12a2 2 0 100-4 2 2 0 000 4zm0 0c.9 0 1.734.26 2.44.71M9 12H5m4 0h4m0 0a2 2 0 104 0 2 2 0 00-4 0zm0 0c-.9 0-1.734.26-2.44.71M17 16h-2v-3m0 0a2 2 0 104 0 2 2 0 00-4 0z" />
-                    </svg>
+                @if($tip->gambar)
+                <img src="{{ asset('storage/' . $tip->gambar) }}" alt="{{ $tip->judul }}" class="w-full h-40 object-cover rounded-xl mb-4">
+                @endif
+                <h3 class="card-title text-xl font-bold text-slate-900 mb-4 text-left">{{ $tip->judul }}</h3>
+                <div class="card-content text-slate-600 text-sm space-y-3">
+                    {!! nl2br(e(Str::limit($tip->konten, 200))) !!}
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4 text-left">Tips Berkendara Angkot</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Duduk di tengah untuk perjalanan lebih stabil.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Pegang pegangan saat angkot bergerak.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Beritahu sopir jika ingin turun jauh-jauh hari.
-                    </li>
-                </ul>
+                <button onclick="showDetail('{{ addslashes($tip->judul) }}', `{{ addslashes($tip->konten) }}`)" class="mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm">
+                    Baca Selengkapnya →
+                </button>
             </div>
-
-            <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="tips">
-                <div class="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+            @empty
+            <div class="card-item col-span-3 text-center py-12" data-category="tips">
+                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="file-text" class="w-10 h-10 text-slate-400"></i>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4 text-left">Tips Hemat Ongkos</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Pilih angkot yang rutenya paling dekat dengan tujuan.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Hindari transit berlebihan untuk menghemat biaya.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-blue-500 font-bold">•</span> Tanyakan tarif sebelum naik jika ragu.
-                    </li>
-                </ul>
+                <h3 class="text-xl font-semibold text-slate-600 mb-2">Belum Ada Tips</h3>
+                <p class="text-slate-500">Tips perjalanan akan segera ditambahkan.</p>
             </div>
+            @endforelse
 
-            <!-- PANDUAN -->
+            {{-- PANDUAN - dari database --}}
+            @forelse($panduan as $pand)
             <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="panduan">
                 <div class="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
+                    <i data-lucide="book-open" class="w-8 h-8"></i>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">Panduan Menarik Angkot</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Berdiri di tempat aman (bukan tikungan/turunan).
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Lambaikan tangan kiri ke arah jalan.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Pastikan angkot benar-benar berhenti.
-                    </li>
-                </ul>
-            </div>
-
-            <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="panduan">
-                <div class="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                    </svg>
+                @if($pand->gambar)
+                <img src="{{ asset('storage/' . $pand->gambar) }}" alt="{{ $pand->judul }}" class="w-full h-40 object-cover rounded-xl mb-4">
+                @endif
+                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">{{ $pand->judul }}</h3>
+                <div class="card-content text-slate-600 text-sm space-y-3">
+                    {!! nl2br(e(Str::limit($pand->konten, 200))) !!}
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">Panduan Turun Angkot</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Katakan "Kiri, Bang!" untuk memberi tahu sopir.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Tunggu angkot berhenti total sebelum turun.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Pastikan tidak ada kendaraan di belakang saat turun.
-                    </li>
-                </ul>
+                <button onclick="showDetail('{{ addslashes($pand->judul) }}', `{{ addslashes($pand->konten) }}`)" class="mt-4 text-emerald-600 hover:text-emerald-800 font-medium text-sm">
+                    Baca Selengkapnya →
+                </button>
             </div>
-
-            <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="panduan">
-                <div class="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+            @empty
+            <div class="card-item col-span-3 text-center py-12" data-category="panduan">
+                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="book-open" class="w-10 h-10 text-slate-400"></i>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">Panduan Bayar Ongkos</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Bayar ongkos setelah naik atau sebelum turun.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Oper uang ke depan jika duduk di belakang.
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <span class="text-emerald-500 font-bold">•</span> Ucapkan terima kasih kepada sopir.
-                    </li>
-                </ul>
+                <h3 class="text-xl font-semibold text-slate-600 mb-2">Belum Ada Panduan</h3>
+                <p class="text-slate-500">Panduan penggunaan angkot akan segera ditambahkan.</p>
             </div>
+            @endforelse
 
-            <!-- FAQ -->
+            {{-- FAQ - dari artikel kategori faq --}}
+            @foreach($faqArtikels as $faqArt)
             <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="faq">
                 <div class="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-amber-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <i data-lucide="help-circle" class="w-8 h-8"></i>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">Tarif & Pembayaran</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2 italic">
-                        "Berapa tarif jarak dekat?" <br>— Umumnya Rp 3.000 - Rp 5.000.
-                    </li>
-                    <li class="flex items-start gap-2 italic">
-                        "Apakah bisa bayar dengan uang elektronik?" <br>— Sebagian besar masih tunai.
-                    </li>
-                </ul>
+                @if($faqArt->gambar)
+                <img src="{{ asset('storage/' . $faqArt->gambar) }}" alt="{{ $faqArt->judul }}" class="w-full h-40 object-cover rounded-xl mb-4">
+                @endif
+                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">{{ $faqArt->judul }}</h3>
+                <div class="card-content text-slate-600 text-sm space-y-3">
+                    {!! nl2br(e(Str::limit($faqArt->konten, 200))) !!}
+                </div>
+                <button onclick="showDetail('{{ addslashes($faqArt->judul) }}', `{{ addslashes($faqArt->konten) }}`)" class="mt-4 text-amber-600 hover:text-amber-800 font-medium text-sm">
+                    Baca Selengkapnya →
+                </button>
             </div>
+            @endforeach
 
+            {{-- FAQ - dari tabel faqs (legacy) --}}
+            @forelse($faqs as $faq)
             <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="faq">
                 <div class="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-amber-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <i data-lucide="help-circle" class="w-8 h-8"></i>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">Rute & Jadwal</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2 italic">
-                        "Sampai jam berapa angkot beroperasi?" <br>— Sebagian besar hingga jam 21.00 WIB.
-                    </li>
-                    <li class="flex items-start gap-2 italic">
-                        "Bagaimana cara tahu rute angkot?" <br>— Lihat nomor trayek dan tanyakan ke sopir.
-                    </li>
-                </ul>
-            </div>
-
-            <div class="card-item group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100" data-category="faq">
-                <div class="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-amber-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
+                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">{{ $faq->pertanyaan }}</h3>
+                <div class="card-content text-slate-600 text-sm space-y-3">
+                    <p class="italic">{!! nl2br(e($faq->jawaban)) !!}</p>
                 </div>
-                <h3 class="card-title text-xl font-bold text-slate-900 mb-4">Keamanan & Kenyamanan</h3>
-                <ul class="card-content text-slate-600 text-sm space-y-3">
-                    <li class="flex items-start gap-2 italic">
-                        "Bagaimana jika barang hilang di angkot?" <br>— Segera hubungi pool angkot terdekat.
-                    </li>
-                    <li class="flex items-start gap-2 italic">
-                        "Apakah aman naik angkot malam hari?" <br>— Pilih angkot yang ramai penumpang.
-                    </li>
-                </ul>
             </div>
+            @empty
+                @if($faqArtikels->isEmpty())
+                <div class="card-item col-span-3 text-center py-12" data-category="faq">
+                    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="help-circle" class="w-10 h-10 text-slate-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-600 mb-2">Belum Ada FAQ</h3>
+                    <p class="text-slate-500">Pertanyaan yang sering diajukan akan segera ditambahkan.</p>
+                </div>
+                @endif
+            @endforelse
 
+        </div>
+    </div>
+</div>
+
+{{-- Modal Detail --}}
+<div id="detailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+            <h3 id="modalTitle" class="text-xl font-bold text-slate-900"></h3>
+            <button onclick="closeModal()" class="text-slate-500 hover:text-slate-700">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <div id="modalContent" class="text-slate-700 leading-relaxed whitespace-pre-line"></div>
         </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ini mneganbil semua elemen yang dibutuhkan
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
     const tabButtons = document.querySelectorAll('.tab-button');
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
     const cards = document.querySelectorAll('.card-item');
     let currentTab = 'tips';
 
-    // fungsinya ini untuk ganti tab
     function switchTab(tabName) {
         currentTab = tabName;
         
-        // Update style tombol tab
         tabButtons.forEach(btn => {
             const btnTab = btn.getAttribute('data-tab');
             if (btnTab === tabName) {
@@ -234,10 +173,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // untuk mengosongkan kolom pencarian
         searchInput.value = '';
         
-        // tampilkan/ sembunyikan card sesuai kategori
         cards.forEach(card => {
             const cardCategory = card.getAttribute('data-category');
             if (cardCategory === tabName) {
@@ -248,14 +185,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // fungsi nya untuk mecari card berdasarakan keyword
     function searchCards(keyword) {
         const searchTerm = keyword.toLowerCase().trim();
         
         cards.forEach(card => {
             const cardCategory = card.getAttribute('data-category');
             
-            // cuma cari di tab yang sedang aktif
             if (cardCategory !== currentTab) {
                 return;
             }
@@ -265,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-             // Ambil teks dari judul dan isi card
             const title = card.querySelector('.card-title');
             const content = card.querySelector('.card-content');
             
@@ -276,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const titleText = title.textContent.toLowerCase();
             const contentText = content.textContent.toLowerCase();
             
-              // Tampilkan card kalau keyword cocok di judul atau isi
             if (titleText.includes(searchTerm) || contentText.includes(searchTerm)) {
                 card.style.display = 'block';
             } else {
@@ -285,7 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Event: Klik tombol tab (Tips/Panduan/FAQ)
     tabButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const tabName = this.getAttribute('data-tab');
@@ -293,25 +225,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Event: Ketik di kolom search (real-time)
     searchInput.addEventListener('input', function() {
         searchCards(this.value);
     });
 
-    // Event: Klik tombol "Cari"
     searchButton.addEventListener('click', function() {
         searchCards(searchInput.value);
     });
 
-    // Enter key support // Event: Tekan Enter di kolom search
     searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             searchCards(this.value);
         }
     });
 
-    // Inisialisasi: Tampilkan tab Tips pertama kali
     switchTab('tips');
+});
+
+function showDetail(title, content) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalContent').textContent = content.replace(/\\n/g, '\n');
+    document.getElementById('detailModal').classList.remove('hidden');
+    document.getElementById('detailModal').classList.add('flex');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function closeModal() {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.getElementById('detailModal').classList.remove('flex');
+}
+
+document.getElementById('detailModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
 });
 </script>
 

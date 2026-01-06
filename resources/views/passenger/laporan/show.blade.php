@@ -88,7 +88,7 @@
 
                         {{-- Step 2: Diproses --}}
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center {{ in_array($laporan->status, ['diproses', 'selesai']) ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400' }}">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center {{ in_array($laporan->status, ['diproses', 'selesai']) ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400' }} {{ $laporan->status === 'diproses' ? 'animate-pulse' : '' }}">
                                 <i data-lucide="loader" class="w-4 h-4"></i>
                             </div>
                             <span class="text-sm font-semibold {{ in_array($laporan->status, ['diproses', 'selesai']) ? 'text-slate-900' : 'text-slate-400' }}">Diproses</span>
@@ -103,6 +103,23 @@
                             </div>
                             <span class="text-sm font-semibold {{ $laporan->status === 'selesai' ? 'text-emerald-600' : 'text-slate-400' }}">Selesai</span>
                         </div>
+                    </div>
+                    
+                    {{-- Timeline Detail --}}
+                    <div class="mt-6 space-y-3">
+                        <div class="flex items-center gap-3 text-sm">
+                            <div class="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <span class="text-slate-600">Laporan dibuat:</span>
+                            <span class="font-semibold text-slate-900">{{ $laporan->created_at->format('d M Y, H:i') }} WIB</span>
+                        </div>
+                        @if($laporan->updated_at != $laporan->created_at)
+                        <div class="flex items-center gap-3 text-sm">
+                            <div class="w-2 h-2 rounded-full {{ $laporan->status === 'selesai' ? 'bg-emerald-500' : 'bg-amber-500' }}"></div>
+                            <span class="text-slate-600">Terakhir diupdate:</span>
+                            <span class="font-semibold text-slate-900">{{ $laporan->updated_at->format('d M Y, H:i') }} WIB</span>
+                            <span class="text-slate-400">({{ $laporan->updated_at->diffForHumans() }})</span>
+                        </div>
+                        @endif
                     </div>
                 </div>
 

@@ -102,12 +102,17 @@
         @else
             <div class="space-y-4">
                 @foreach($laporans as $laporan)
-                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                    @php
+                        $isNew = $laporan->updated_at->diffInHours(now()) < 24 && 
+                                 $laporan->updated_at != $laporan->created_at &&
+                                 $laporan->tanggapan_admin;
+                    @endphp
+                    <div class="bg-white rounded-2xl border {{ $isNew ? 'border-blue-300 ring-2 ring-blue-100' : 'border-slate-100' }} shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                         <div class="p-6">
                             <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                                 {{-- Content --}}
                                 <div class="flex-1">
-                                    <div class="flex items-center gap-3 mb-2">
+                                    <div class="flex items-center gap-3 mb-2 flex-wrap">
                                         {{-- Status Badge --}}
                                         @if($laporan->status === 'pending')
                                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
@@ -116,13 +121,21 @@
                                             </span>
                                         @elseif($laporan->status === 'diproses')
                                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
                                                 Sedang Diproses
                                             </span>
                                         @else
                                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                 Selesai
+                                            </span>
+                                        @endif
+
+                                        {{-- Badge BARU jika ada tanggapan dalam 24 jam --}}
+                                        @if($isNew)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white animate-pulse">
+                                                <i data-lucide="bell" class="w-3 h-3"></i>
+                                                BARU
                                             </span>
                                         @endif
 
@@ -136,9 +149,20 @@
 
                                     {{-- Tanggapan Admin --}}
                                     @if($laporan->tanggapan_admin)
-                                        <div class="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                                            <p class="text-xs font-bold text-blue-600 mb-1">Tanggapan Admin:</p>
-                                            <p class="text-sm text-blue-800">{{ $laporan->tanggapan_admin }}</p>
+                                        <div class="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <i data-lucide="message-circle" class="w-4 h-4 text-blue-600"></i>
+                                                <p class="text-xs font-bold text-blue-600">Tanggapan Admin</p>
+                                                @if($isNew)
+                                                    <span class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Baru!</span>
+                                                @endif
+                                            </div>
+                                            <p class="text-sm text-blue-800">{{ Str::limit($laporan->tanggapan_admin, 150) }}</p>
+                                            @if($laporan->updated_at != $laporan->created_at)
+                                                <p class="text-xs text-blue-400 mt-2">
+                                                    {{ $laporan->updated_at->diffForHumans() }}
+                                                </p>
+                                            @endif
                                         </div>
                                     @endif
                                 </div>

@@ -46,8 +46,8 @@
                             class="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition appearance-none">
                         <option value="">Pilih kategori...</option>
                         <option value="tips" {{ old('kategori') === 'tips' ? 'selected' : '' }}>Tips & Trik</option>
-                        <option value="info_traffic" {{ old('kategori') === 'info_traffic' ? 'selected' : '' }}>Info Traffic</option>
-                        <option value="umum" {{ old('kategori') === 'umum' ? 'selected' : '' }}>Informasi Umum</option>
+                        <option value="panduan" {{ old('kategori') === 'panduan' ? 'selected' : '' }}>Panduan</option>
+                        <option value="faq" {{ old('kategori') === 'faq' ? 'selected' : '' }}>FAQ</option>
                     </select>
                 </div>
                 @error('kategori')
