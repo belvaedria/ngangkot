@@ -40,6 +40,17 @@
             </div>
         @endif
 
+        {{-- Notifikasi Update Baru --}}
+        @if(session('info'))
+            <div class="mb-6 p-4 bg-blue-50 border-2 border-blue-300 rounded-2xl flex items-start gap-3 animate-pulse">
+                <i data-lucide="bell" class="w-5 h-5 text-blue-600 mt-0.5"></i>
+                <div>
+                    <p class="font-bold text-blue-900">{{ session('info') }}</p>
+                    <p class="text-sm text-blue-600 mt-1">Laporan dengan badge "BARU" telah ditanggapi oleh admin.</p>
+                </div>
+            </div>
+        @endif
+
         {{-- Stats Cards --}}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             @php

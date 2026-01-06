@@ -41,9 +41,6 @@
                     <a href="{{ route('login') }}" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xl shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
                         Masuk
                     </a>
-                    <a href="{{ route('register') }}" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-xl shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
-                        Daftar
-                    </a>
                 @endauth
             </div>
         </div>

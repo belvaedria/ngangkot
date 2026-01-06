@@ -20,7 +20,24 @@ class LaporanController extends Controller
             ->latest()
             ->get();
 
-        return view('passenger.laporan.index', compact('laporans'));
+        // Cek apakah ada laporan yang baru diupdate admin (dalam 7 hari terakhir)
+        $recentUpdates = $laporans->filter(function($laporan) {
+            return in_array($laporan->status, ['diproses', 'selesai']) 
+                && $laporan->updated_at->gt(now()->subDays(7))
+                && $laporan->tanggapan_admin;
+        });
+
+        // Tampilkan notifikasi otomatis jika ada update baru
+        if($recentUpdates->isNotEmpty()) {
+            $count = $recentUpdates->count();
+            $message = $count === 1 
+                ? 'Ada 1 laporan dengan tanggapan baru dari admin!' 
+                : "Ada {$count} laporan dengan tanggapan baru dari admin!";
+            
+            session()->flash('info', $message);
+        }
+
+        return view('passenger.laporan.index', compact('laporans', 'recentUpdates'));
     }
 
     /**
