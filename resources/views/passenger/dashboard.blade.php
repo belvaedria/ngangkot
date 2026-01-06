@@ -69,7 +69,7 @@
                                         id="input_asal"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        suggest="off"
+                                        autocomplete="off"
                                     />
 
                                       <!-- dropdown list -->
@@ -101,7 +101,7 @@
                                         id="input_tujuan"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        suggest="off"
+                                        autocomplete="off"
                                     />
 
                                       <!-- dropdown list -->
@@ -225,7 +225,7 @@
                                         id="input_asal"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-slate-50 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        suggest="off"
+                                        autocomplete="off"
                                     />
 
                                    <!-- dropdown list -->
@@ -258,7 +258,7 @@
                                         id="input_tujuan"
                                         type="text"
                                         class="w-full mt-1 px-4 py-3 pr-10 rounded-2xl border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200 peer"
-                                        suggest="off"
+                                        autocomplete="off"
                                     />
 
                                     <div
