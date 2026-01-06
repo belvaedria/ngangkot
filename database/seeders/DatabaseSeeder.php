@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             TrayekSeeder::class,
             DriverSeeder::class,
+            ArtikelSeeder::class,
+            FaqSeeder::class,
         ]);
 
         // User::factory(10)->create();
