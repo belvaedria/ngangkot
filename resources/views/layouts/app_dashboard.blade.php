@@ -42,6 +42,7 @@
         [x-cloak] { display: none !important; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .route-list { display: grid; gap: 12px; }
     </style>
 </head>
 <body

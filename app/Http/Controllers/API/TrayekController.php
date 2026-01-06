@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Trayek;
+use App\Models\Angkot;
 use Illuminate\Http\Request;
 
 class TrayekController extends Controller
@@ -33,5 +34,17 @@ class TrayekController extends Controller
     {
         $trayek = Trayek::where('kode_trayek', $kode)->first();
         return $trayek ? response()->json($trayek) : response()->json(['message'=>'Not found'], 404);
+    }
+
+    public function angkotAktif($trayekKode)
+    {
+        $angkots = Angkot::query()
+            ->where('kode_trayek', $trayekKode)
+            ->where('is_active', true)
+            ->whereNotNull('lat_sekarang')
+            ->whereNotNull('lng_sekarang')
+            ->get(['id','plat_nomor','lat_sekarang','lng_sekarang','updated_at']);
+
+        return response()->json($angkots);
     }
 }

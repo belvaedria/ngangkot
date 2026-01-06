@@ -44,7 +44,7 @@
 
     <div class="flex-1 overflow-y-auto">
   <div class="px-4 space-y-3 pb-6" x-show="!selectedDetail">
-    <template x-for="trayek in filteredTrayeks" :key="trayek.kode_trayek">
+    <template x-for="trayek in filteredTrayeks" :key="trayek.id ?? trayek.kode_trayek">
       <button
         x-on:click="selectTrayek(trayek)"
         class="w-full text-left p-4 rounded-2xl border transition"
@@ -92,7 +92,7 @@
 
           <div class="text-sm text-slate-600 mt-1">
             <span x-text="selectedDetail?.arah_awal"></span>
-            
+            <span class="mx-1">→</span>
             <span x-text="selectedDetail?.arah_akhir"></span>
           </div>
         </div>
@@ -101,21 +101,62 @@
           x-text="isBalik ? 'Pulang' : 'Pergi'"></span>
       </div>
 
-      <button
-        class="w-full rounded-xl border border-slate-200 bg-blue-200 py-2 text-sm hover:bg-slate-100 disabled:opacity-50"
-        x-on:click="toggleArah()"
-        :disabled="!selectedDetail?.kode_balik"
-      >
-        Tukar arah
-      </button>
-
       <div class="text-xs text-slate-500" x-show="loadingDetail">Loading detail…</div>
+
+      {{-- ANGKOT AKTIF --}}
+      <div class="pt-2">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          Angkot Aktif
+        </div>
+
+        <template x-if="activeAngkots.length > 0">
+          <div class="space-y-2">
+            <template x-for="a in activeAngkots" :key="a.id">
+              <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white"
+                      :style="`background:${selectedDetail?.warna_angkot || '#2563eb'};`">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                        viewBox="0 0 24 24" fill="none" stroke="white"
+                        stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-bold text-slate-900" x-text="a.plat_nomor"></div>
+                    <div class="text-[11px] text-slate-500">Live location tersedia</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <template x-if="!loadingAktif && activeAngkots.length === 0">
+          <div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold">
+            Belum ada angkot yang aktif
+          </div>
+        </template>
+
+        <template x-if="loadingAktif">
+          <div class="text-xs text-slate-400">Memuat angkot aktif…</div>
+        </template>
+      </div>
+
 
       {{-- DAFTAR JALAN --}}
       <div class="pt-2">
         <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
           Jalan yang dilalui
         </div>
+
+        <button
+          class="w-full rounded-xl border border-slate-200 bg-blue-200 py-2 text-sm hover:bg-slate-100 disabled:opacity-50"
+          x-on:click="toggleArah()"
+          :disabled="!selectedDetail?.kode_balik"
+        >
+          Tukar arah
+        </button>
 
         <template x-if="Array.isArray(selectedDetail?.daftar_jalan) && selectedDetail.daftar_jalan.length">
           <ol class="space-y-2">
@@ -167,6 +208,14 @@ function trayekPage() {
     startMarker: null,
     endMarker: null,
 
+    activeAngkots: [],
+    loadingAktif: false,
+    aktifPollId: null,
+
+    angkotLayer: null,
+    angkotMarkers: new Map(), // key: angkot id -> marker
+
+
 
     initPage() {
       // collapse sidebar dashboard (sama kayak navigasi)
@@ -186,6 +235,8 @@ function trayekPage() {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap'
       }).addTo(this.map);
+
+      this.angkotLayer = L.layerGroup().addTo(this.map);
     },
 
     async fetchTrayeks() {
@@ -204,7 +255,13 @@ function trayekPage() {
     async selectTrayek(trayek) {
       this.selectedTrayek = trayek;
       this.isBalik = false;
+
+      // biar marker trayek lama gak nyangkut
+      this.stopPollingAngkotAktif();
+
       await this.loadDetailAndDraw(trayek.kode_trayek);
+
+      if (trayek?.kode_trayek) this.startPollingAngkotAktif(trayek.kode_trayek);
     },
 
     async toggleArah() {
@@ -217,6 +274,7 @@ function trayekPage() {
         : this.selectedTrayek.kode_trayek;
 
       await this.loadDetailAndDraw(kode);
+      this.startPollingAngkotAktif(kode);
     },
 
     async loadDetailAndDraw(kode) {
@@ -237,88 +295,191 @@ function trayekPage() {
     },
 
     drawRoute(detail) {
-      // bersihin layer lama
       if (this.routeLayer) {
         this.map.removeLayer(this.routeLayer);
         this.routeLayer = null;
       }
 
-      // parse geojson
-      let geo;
-      try {
-        geo = typeof detail.rute_json === 'string'
-          ? JSON.parse(detail.rute_json)
-          : detail.rute_json;
-      } catch (e) {
-        console.error('GeoJSON invalid:', e);
-        return;
+      if (this.startMarker) { this.map.removeLayer(this.startMarker); this.startMarker = null; }
+      if (this.endMarker) { this.map.removeLayer(this.endMarker); this.endMarker = null; }
+
+        // parse geojson
+        let geo;
+        try {
+          geo = typeof detail.rute_json === 'string'
+            ? JSON.parse(detail.rute_json)
+            : detail.rute_json;
+        } catch (e) {
+          console.error('GeoJSON invalid:', e);
+          return;
+        }
+
+        // gambar jalur
+        this.routeLayer = L.geoJSON(geo, {
+          style: {
+            weight: 6,
+            opacity: 0.9,
+            color: detail.warna_angkot || '#2563eb'
+          }
+        }).addTo(this.map);
+
+        // ambil koordinat awal & akhir (asumsi LineString pertama)
+      const coords = geo?.features?.[0]?.geometry?.coordinates;
+      if (Array.isArray(coords) && coords.length >= 2) {
+      const first = coords[0];                  // [lng, lat]
+      const last  = coords[coords.length - 1];  // [lng, lat]
+
+      this.startMarker = L.circleMarker([first[1], first[0]], {
+          radius: 8,
+          weight: 2,
+          color: '#16a34a',
+          fillColor: '#22c55e',
+          fillOpacity: 1
+      }).addTo(this.map).bindTooltip('Titik awal');
+
+      this.endMarker = L.circleMarker([last[1], last[0]], {
+          radius: 8,
+          weight: 2,
+          color: '#b91c1c',
+          fillColor: '#ef4444',
+          fillOpacity: 1
+      }).addTo(this.map).bindTooltip('Titik akhir');
       }
 
-      // gambar jalur
-      this.routeLayer = L.geoJSON(geo, {
-        style: {
-          weight: 6,
-          opacity: 0.9,
-          color: detail.warna_angkot || '#2563eb'
+        // zoom ke jalur
+        const bounds = this.routeLayer.getBounds();
+        if (bounds.isValid()) {
+          this.map.fitBounds(bounds.pad(0.2));
         }
-      }).addTo(this.map);
 
-      // ambil koordinat awal & akhir (asumsi LineString pertama)
-    const coords = geo?.features?.[0]?.geometry?.coordinates;
-    if (Array.isArray(coords) && coords.length >= 2) {
-    const first = coords[0];                  // [lng, lat]
-    const last  = coords[coords.length - 1];  // [lng, lat]
+      },
 
-    this.startMarker = L.circleMarker([first[1], first[0]], {
-        radius: 8,
-        weight: 2,
-        color: '#16a34a',
-        fillColor: '#22c55e',
-        fillOpacity: 1
-    }).addTo(this.map).bindTooltip('Titik awal');
+      getAngkotIcon(color) {
+          const c = color || '#2563eb';
+          return L.divIcon({
+            className: 'angkot-marker',
+            html: `
+              <div style="
+                width:34px;height:34px;border-radius:9999px;
+                background:${c};
+                display:flex;align-items:center;justify-content:center;
+                box-shadow:0 10px 25px rgba(0,0,0,0.18);
+                border: 3px solid rgba(255,255,255,0.9);
+              ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                    viewBox="0 0 24 24" fill="none" stroke="white"
+                    stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+                </svg>
+              </div>
+            `,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+          });
+        },
+        
+        async fetchAngkotAktif(trayekKode) {
+          this.loadingAktif = true;
+          try {
+            const res = await fetch(`/api/trayek/${encodeURIComponent(trayekKode)}/angkot-aktif`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
 
-    this.endMarker = L.circleMarker([last[1], last[0]], {
-        radius: 8,
-        weight: 2,
-        color: '#b91c1c',
-        fillColor: '#ef4444',
-        fillOpacity: 1
-    }).addTo(this.map).bindTooltip('Titik akhir');
-    }
+            const data = await res.json();
+            this.activeAngkots = Array.isArray(data) ? data : [];
+
+            this.renderAngkotMarkers(this.activeAngkots);
+          } catch (e) {
+            console.error('Gagal load angkot aktif', e);
+            this.activeAngkots = [];
+            this.renderAngkotMarkers([]);
+          } finally {
+            this.loadingAktif = false;
+          }
+        },
 
 
-      // zoom ke jalur
-      const bounds = this.routeLayer.getBounds();
-      if (bounds.isValid()) {
-        this.map.fitBounds(bounds.pad(0.2));
-      }
-    },
 
-    get filteredTrayeks() {
-      if (!this.search) return this.trayeks;
-      const q = this.search.toLowerCase();
+      renderAngkotMarkers(list) {
+        const alive = new Set();
 
-      return this.trayeks.filter(t =>
-        (t.nama_trayek || '').toLowerCase().includes(q) ||
-        (t.kode_trayek || '').toLowerCase().includes(q) ||
-        (t.arah_awal || '').toLowerCase().includes(q) ||
-        (t.arah_akhir || '').toLowerCase().includes(q)
-      );
-    },
+        const color = this.selectedDetail?.warna_angkot || '#2563eb';
+        const icon = this.getAngkotIcon(color);
 
-    backToList() {
-        this.selectedDetail = null;
-        this.selectedTrayek = null;
-        this.isBalik = false;
+        (list || []).forEach(a => {
+          const lat = a.lat_sekarang;
+          const lng = a.lng_sekarang;
+          if (lat == null || lng == null) return; // pure live GPS: skip null
 
-        // bersihin layer map
-        if (this.routeLayer) {
-            this.map.removeLayer(this.routeLayer);
-            this.routeLayer = null;
+          alive.add(a.id);
+
+          if (!this.angkotMarkers.has(a.id)) {
+            const m = L.marker([lat, lng], { icon }).addTo(this.angkotLayer);
+            m.bindPopup(`<b>${a.plat_nomor}</b>`);
+            this.angkotMarkers.set(a.id, m);
+          } else {
+            this.angkotMarkers.get(a.id).setLatLng([lat, lng]);
+          }
+        });
+
+        // remove markers that are no longer active
+        for (const [id, marker] of this.angkotMarkers.entries()) {
+          if (!alive.has(id)) {
+            this.angkotLayer.removeLayer(marker);
+            this.angkotMarkers.delete(id);
+          }
         }
-        if (this.startMarker) { this.map.removeLayer(this.startMarker); this.startMarker = null; }
-        if (this.endMarker) { this.map.removeLayer(this.endMarker); this.endMarker = null; }
-    },
+      },
+
+      startPollingAngkotAktif(trayekKode) {
+        this.stopPollingAngkotAktif();
+        this.loadingAktif = true;
+        this.fetchAngkotAktif(trayekKode);
+
+        this.aktifPollId = setInterval(() => {
+          if (!this.selectedTrayek?.kode_trayek) return;
+          this.fetchAngkotAktif(trayekKode);
+        }, 4000);
+      },
+
+      stopPollingAngkotAktif() {
+        if (this.aktifPollId) {
+          clearInterval(this.aktifPollId);
+          this.aktifPollId = null;
+        }
+        this.activeAngkots = [];
+
+        if (this.angkotLayer) this.angkotLayer.clearLayers();
+        if (this.angkotMarkers) this.angkotMarkers.clear();
+      },
+
+      get filteredTrayeks() {
+        if (!this.search) return this.trayeks;
+        const q = this.search.toLowerCase();
+
+        return this.trayeks.filter(t =>
+          (t.nama_trayek || '').toLowerCase().includes(q) ||
+          (t.kode_trayek || '').toLowerCase().includes(q) ||
+          (t.arah_awal || '').toLowerCase().includes(q) ||
+          (t.arah_akhir || '').toLowerCase().includes(q)
+        );
+      },
+
+      backToList() {
+          this.selectedDetail = null;
+          this.selectedTrayek = null;
+          this.isBalik = false;
+
+          // bersihin layer map
+          if (this.routeLayer) {
+              this.map.removeLayer(this.routeLayer);
+              this.routeLayer = null;
+          }
+          if (this.startMarker) { this.map.removeLayer(this.startMarker); this.startMarker = null; }
+          if (this.endMarker) { this.map.removeLayer(this.endMarker); this.endMarker = null; }
+
+          this.stopPollingAngkotAktif();
+      },
+
 
   }
 }
