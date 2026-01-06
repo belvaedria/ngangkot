@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('judul');
             $table->text('konten');
             $table->string('gambar')->nullable();
-            $table->enum('kategori', ['tips', 'info_traffic', 'umum']);
+            $table->enum('kategori', ['tips', 'panduan', 'faq']);
             $table->timestamps();
         });
     }
