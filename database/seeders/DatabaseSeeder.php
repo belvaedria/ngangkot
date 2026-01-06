@@ -27,5 +27,27 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Tim Ngangkot - Passenger accounts
+        User::create([
+            'name' => 'Sabil',
+            'email' => 'sabil@ngangkot.com',
+            'password' => bcrypt('password123'),
+            'role' => 'passenger',
+        ]);
+
+        User::create([
+            'name' => 'Belva',
+            'email' => 'belva@ngangkot.com',
+            'password' => bcrypt('password123'),
+            'role' => 'passenger',
+        ]);
+
+        User::create([
+            'name' => 'Arkan',
+            'email' => 'arkan@ngangkot.com',
+            'password' => bcrypt('password123'),
+            'role' => 'passenger',
+        ]);
     }
 }
