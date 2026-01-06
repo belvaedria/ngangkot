@@ -1,14 +1,14 @@
 @extends('layouts.app_dashboard')
 @include('layouts.menus.driver')
 
-@section('title', 'Riwayat Narik')
+@section('title', 'Catatan Perjalanan')
 
 @section('content')
 <div class="flex-1 overflow-y-auto custom-scroll p-6 md:p-10">
     <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
             <div>
-                <p class="text-xs font-bold text-slate-500 uppercase">Perjalanan</p>
+                <p class="text-xs font-bold text-slate-500 uppercase">Catatan Perjalanan</p>
                 <h2 class="text-2xl font-black text-slate-900">Riwayat narik</h2>
             </div>
         </div>

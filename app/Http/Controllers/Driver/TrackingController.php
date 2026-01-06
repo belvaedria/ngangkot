@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Angkot;
 use App\Models\RiwayatPengemudi;
 use Carbon\Carbon;
+use App\Models\Angkot;
+
 
 class TrackingController extends Controller
 {

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('trayeks', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_trayek'); 
+            $table->string('kode_trayek')->unique();
             $table->string('nama_trayek'); 
             
             // Koordinat Titik Asal & Tujuan

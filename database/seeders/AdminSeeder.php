@@ -17,8 +17,7 @@ class AdminSeeder extends Seeder
             'name' => 'Super Admin Dishub',
             'email' => 'admin@ngangkot.com',
             'password' => bcrypt('admin123'),
-            'role' => 'admin',
-            'phone' => '08123456789'
+            'role' => 'admin'
         ]);
     }
 }

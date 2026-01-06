@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             TrayekSeeder::class,
+            DriverSeeder::class,
         ]);
 
         // User::factory(10)->create();
