@@ -108,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('passenger')->name('passenger.')->middleware('role:passenger')->group(function () {
         Route::get('/riwayat', [PasRiwayat::class, 'index'])->name('riwayat.index');
         Route::post('/favorit', [PasRiwayat::class, 'storeFavorit'])->name('favorit.store');
+        Route::delete('/favorit/{id}', [PasRiwayat::class, 'destroyFavorit'])->name('favorit.destroy');
         Route::resource('laporan', PasLaporan::class);
     });
 
