@@ -19,7 +19,7 @@ class ArtikelController extends Controller {
         $request->validate([
             'judul' => 'required',
             'konten' => 'required',
-            'kategori' => 'required|in:tips,info_traffic,umum',
+            'kategori' => 'required|in:tips,panduan,faq',
             'gambar' => 'nullable|image|max:2048' // Max 2MB
         ]);
 
@@ -46,7 +46,7 @@ class ArtikelController extends Controller {
         $request->validate([
             'judul' => 'required',
             'konten' => 'required',
-            'kategori' => 'required|in:tips,info_traffic,umum',
+            'kategori' => 'required|in:tips,panduan,faq',
             'gambar' => 'nullable|image|max:2048'
         ]);
 
