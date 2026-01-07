@@ -20,15 +20,24 @@ class AngkotController extends Controller
     }
 
     public function store(Request $request) {
-        $request->validate(['plat_nomor' => 'required|unique:angkots', 'trayek_id' => 'required']);
-        Angkot::create([
-            'plat_nomor' => $request->plat_nomor,
-            'trayek_id' => $request->trayek_id,
-            'user_id' => Auth::id(), // Auto milik driver ini
-            'is_active' => false
+        $request->validate([
+            'plat_nomor' => 'required|unique:angkots',
+            'trayek_id'  => 'required|exists:trayeks,id',
         ]);
+
+        $trayek = Trayek::findOrFail($request->trayek_id);
+
+        Angkot::create([
+            'plat_nomor'   => $request->plat_nomor,
+            'trayek_id'    => $request->trayek_id,
+            'kode_trayek'  => $trayek->kode_trayek, // atau nama kolom sebenarnya di trayeks
+            'user_id'      => Auth::id(),
+            'is_active'    => false,
+        ]);
+
         return redirect()->route('driver.angkot.index')->with('success', 'Mobil berhasil didaftarkan');
     }
+
 
     public function edit(Angkot $angkot) {
         if($angkot->user_id !== Auth::id()) abort(403);

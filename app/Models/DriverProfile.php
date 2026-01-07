@@ -8,19 +8,15 @@ class DriverProfile extends Model
 {
     protected $fillable = [
         'user_id',
-        'nama_unit',
-        'status_sim',
-        'trayek_id',
-        'status'
+        'nomor_sim',
+        'foto_ktp',
+        'foto_sim',
+        'alamat_domisili',
+        'status',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function trayek()
-    {
-        return $this->belongsTo(Trayek::class);
     }
 }

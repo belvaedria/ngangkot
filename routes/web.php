@@ -6,7 +6,6 @@ use App\Http\Controllers\PublicController;
 
 // Passenger
 use App\Http\Controllers\Passenger\NavigasiController as PasNavigasi;
-use App\Http\Controllers\Passenger\DashboardController as PasDashboard;
 use App\Http\Controllers\Passenger\RiwayatController as PasRiwayat;
 use App\Http\Controllers\Passenger\LaporanController as PasLaporan;
 use App\Http\Controllers\Passenger\EdukasiController as PasEdukasi;
@@ -17,7 +16,7 @@ use App\Http\Controllers\Driver\DashboardController as DrvDashboard;
 use App\Http\Controllers\Driver\AngkotController as DrvAngkot;
 use App\Http\Controllers\Driver\RiwayatController as DrvRiwayat;
 use App\Http\Controllers\Driver\EdukasiController as DrvEdukasi;
-use App\Http\Controllers\Driver\CekJalurController as DrvCekJalur;
+use App\Http\Controllers\Driver\DriverProfileController;
 
 // Admin
 use App\Http\Controllers\Admin\TrayekController as AdmTrayek;
@@ -112,8 +111,17 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('laporan', PasLaporan::class);
     });
 
-    // DRIVER locked
+
+    // DRIVER area (driver saja, belum tentu verified)
     Route::prefix('driver')->name('driver.')->middleware('role:driver')->group(function () {
+        Route::get('/profile', [DriverProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [DriverProfileController::class, 'update'])->name('profile.update');
+
+        Route::get('/waiting', [DriverProfileController::class, 'waiting'])->name('verification.waiting');
+    });
+
+    // DRIVER area (wajib verified)
+    Route::prefix('driver')->name('driver.')->middleware(['role:driver','driver.verified'])->group(function () {
         Route::get('/home', [DrvDashboard::class, 'index'])->name('dashboard');
         Route::post('/tracking/status', [DrvTracking::class, 'updateStatus'])->name('tracking.status');
         Route::post('/tracking/lokasi', [DrvTracking::class, 'updateLokasi'])->name('tracking.lokasi');
@@ -121,19 +129,20 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('angkot', DrvAngkot::class);
         Route::resource('riwayat', DrvRiwayat::class)->only(['index']);
         Route::get('/edukasi', [DrvEdukasi::class, 'index'])->name('edukasi.index');
-        
-        // Cek Jalur
-        Route::get('/cek-jalur', [DrvCekJalur::class, 'index'])->name('cekjalur.index');
-        Route::get('/cek-jalur/{kode}', [DrvCekJalur::class, 'show'])->name('cekjalur.show');
     });
 
     // ADMIN locked
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::get('/home', [AdmDashboard::class, 'index'])->name('dashboard');
         Route::resource('trayek', AdmTrayek::class);
-        Route::get('/verifikasi', [AdmVerifikasi::class, 'index'])->name('verifikasi.index');
-        Route::post('/verifikasi/{id}/approve', [AdmVerifikasi::class, 'approve'])->name('verifikasi.approve');
-        Route::post('/verifikasi/{id}/reject', [AdmVerifikasi::class, 'reject'])->name('verifikasi.reject');
+        Route::get('/verifikasi', action: [AdmVerifikasi::class, 'index'])
+            ->name('verifikasi.index');
+        Route::get('/verifikasi/{id}', [AdmVerifikasi::class, 'show'])
+            ->name('verifikasi.show');
+        Route::post('/verifikasi/{id}/approve', [AdmVerifikasi::class, 'approve'])
+            ->name('verifikasi.approve');
+        Route::post('/verifikasi/{id}/reject', [AdmVerifikasi::class, 'reject'])
+            ->name('verifikasi.reject');
         Route::resource('laporan', AdmLaporan::class)->only(['index', 'update']);
         Route::resource('artikel', AdmArtikel::class);
         Route::resource('faq', AdmFaq::class);

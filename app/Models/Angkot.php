@@ -9,6 +9,14 @@ class Angkot extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'plat_nomor',
+        'trayek_id',
+        'kode_trayek',
+        'user_id',
+        'is_active',
+    ];
+
     protected $guarded = ['id'];
 
     protected $casts = [

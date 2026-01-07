@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use App\Models\DriverProfile;
 
 class RegisteredUserController extends Controller
 {
@@ -54,10 +55,16 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        // Redirect berdasarkan role
-        return match($user->role) {
-            'driver' => redirect()->route('driver.dashboard'),
-            default => redirect()->route('passenger.dashboard'),
-        };
+        if ($user->role === 'driver') {
+            DriverProfile::firstOrCreate(
+                ['user_id' => $user->id],
+                ['status' => 'pending']
+            );
+            return redirect()->route('driver.profile.edit');
+        }
+
+        return redirect()->route('passenger.dashboard');
+
+        
     }
 }

@@ -46,7 +46,8 @@
     </style>
 </head>
 <body
-  class="flex h-screen overflow-hidden bg-slate-50 text-slate-900"
+  style="direction:ltr"
+  class="flex flex-row h-screen overflow-hidden bg-slate-50 text-slate-900"
   x-data="{ sidebarCollapsed: false }"
   :style="`--sidebar-width: ${sidebarCollapsed ? 88 : 260}px`"
   @collapse-dashboard-sidebar.window="sidebarCollapsed = true"
@@ -104,8 +105,10 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen relative overflow-hidden">
-        @yield('content')
+    <main class="flex-1 h-screen overflow-y-auto">
+        <div class="p-8">
+            @yield('content')
+        </div>
     </main>
 
     <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 pb-safe shadow-2xl">
