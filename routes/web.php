@@ -9,6 +9,7 @@ use App\Http\Controllers\Passenger\NavigasiController as PasNavigasi;
 use App\Http\Controllers\Passenger\RiwayatController as PasRiwayat;
 use App\Http\Controllers\Passenger\LaporanController as PasLaporan;
 use App\Http\Controllers\Passenger\EdukasiController as PasEdukasi;
+use App\Http\Controllers\Passenger\DashboardController as PasDashboard;
 
 // Driver
 use App\Http\Controllers\Driver\TrackingController as DrvTracking;
@@ -86,6 +87,7 @@ require __DIR__.'/auth.php';
 */
 Route::get('/dashboard', function () {
     $role = auth()->user()->role;
+    if ($role === 'passenger') return redirect()->route('passenger.dashboard');
     if ($role === 'admin') return redirect()->route('admin.dashboard');
     if ($role === 'driver') return redirect()->route('driver.dashboard');
     return redirect()->route('passenger.dashboard');
@@ -114,11 +116,20 @@ Route::middleware(['auth'])->group(function () {
 
     // DRIVER area (driver saja, belum tentu verified)
     Route::prefix('driver')->name('driver.')->middleware('role:driver')->group(function () {
-        Route::get('/profile', [DriverProfileController::class, 'edit'])->name('profile.edit');
+
+        // index profil (lihat status, dll)
+        Route::get('/profile', [DriverProfileController::class, 'index'])->name('profile.index');
+
+        // edit profil harus beda URL biar route name kebentuk
+        Route::get('/profile/edit', [DriverProfileController::class, 'edit'])->name('profile.edit');
+
+        // update profil
         Route::put('/profile', [DriverProfileController::class, 'update'])->name('profile.update');
 
+        // waiting page
         Route::get('/waiting', [DriverProfileController::class, 'waiting'])->name('verification.waiting');
     });
+
 
     // DRIVER area (wajib verified)
     Route::prefix('driver')->name('driver.')->middleware(['role:driver','driver.verified'])->group(function () {

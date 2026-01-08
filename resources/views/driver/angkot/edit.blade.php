@@ -22,6 +22,23 @@
                     @endforeach
                 </select>
             </div>
+            <div class="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+    <div>
+        <p class="text-xs font-bold text-slate-500 uppercase">Status</p>
+        <p class="text-sm font-bold text-slate-900">Aktifkan angkot</p>
+    </div>
+
+    {{-- penting: checkbox butuh hidden biar kalau unchecked tetap ngirim 0 --}}
+    <input type="hidden" name="is_active" value="0">
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_active" value="1" class="w-5 h-5"
+                @checked(old('is_active', $angkot->is_active))>
+            <span class="text-sm font-semibold text-slate-700">
+                {{ $angkot->is_active ? 'Aktif' : 'Nonaktif' }}
+            </span>
+        </label>
+    </div>
+
             <div class="flex gap-2">
                 <a href="{{ route('driver.angkot.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600">Batal</a>
                 <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-bold">Update</button>

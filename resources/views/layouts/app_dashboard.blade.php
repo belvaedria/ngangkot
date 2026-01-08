@@ -98,18 +98,19 @@
             </div>
             
             <!-- Toggle Collapse Button -->
-            <button @click="sidebarCollapsed = !sidebarCollapsed" 
+            <button x-on:click="sidebarCollapsed = !sidebarCollapsed" 
                     class="mt-2 w-full flex items-center justify-center p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                 <i data-lucide="chevrons-left" class="w-5 h-5 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : ''"></i>
             </button>
         </div>
     </aside>
 
-    <main class="flex-1 h-screen overflow-y-auto">
-        <div class="p-8">
+    <main class="flex-1 h-screen overflow-hidden">
+        <div class="@yield('content-wrapper', 'h-full overflow-y-auto')">
             @yield('content')
         </div>
     </main>
+
 
     <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 pb-safe shadow-2xl">
         <div class="flex justify-around p-2">

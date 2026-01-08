@@ -27,8 +27,7 @@ class Angkot extends Model
 
     public function trayek()
     {
-        // angkots.kode_trayek (string) -> trayeks.kode_trayek (string)
-        return $this->belongsTo(Trayek::class, 'kode_trayek', 'kode_trayek');
+        return $this->belongsTo(Trayek::class, 'trayek_id');
     }
 
     public function user()

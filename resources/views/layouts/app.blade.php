@@ -6,7 +6,7 @@
     <title>@yield('title', 'Ngangkot - Transportasi Cerdas Bandung')</title>
     
     <!-- 1. Fonts: Plus Jakarta Sans -->
-    <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap)" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- 2. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,14 +27,13 @@
     </script>
     
     <!-- 3. Leaflet CSS & JS (Peta) -->
-    <link rel="stylesheet" href="[https://unpkg.com/leaflet@1.9.4/dist/leaflet.css](https://unpkg.com/leaflet@1.9.4/dist/leaflet.css)" />
-    <script src="[https://unpkg.com/leaflet@1.9.4/dist/leaflet.js](https://unpkg.com/leaflet@1.9.4/dist/leaflet.js)"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- 4. Alpine.js (Interaksi UI) -->
-    <script src="[https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js](https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js)"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- 5. Lucide Icons -->
-    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         body { 
@@ -57,7 +56,7 @@
         .animate-in { animation: fade-in-up 0.6s ease-out forwards; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
+<body class="flex flex-col min-h-screen overflow-x-visible selection:bg-blue-100 selection:text-blue-900">
 
     <!-- INCLUDE NAVIGATION -->
     @include('layouts.navigation')

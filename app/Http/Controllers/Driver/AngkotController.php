@@ -5,6 +5,7 @@ use App\Models\Angkot;
 use App\Models\Trayek;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AngkotController extends Controller
 {
@@ -45,11 +46,39 @@ class AngkotController extends Controller
         return view('driver.angkot.edit', compact('angkot', 'trayeks'));
     }
 
-    public function update(Request $request, Angkot $angkot) {
-        if($angkot->user_id !== Auth::id()) abort(403);
-        $angkot->update($request->only('plat_nomor', 'trayek_id'));
-        return redirect()->route('driver.angkot.index');
+    public function update(Request $request, Angkot $angkot)
+    {
+        if ($angkot->user_id !== Auth::id()) abort(403);
+
+        $request->validate([
+            'plat_nomor' => 'required|unique:angkots,plat_nomor,' . $angkot->id,
+            'trayek_id'  => 'required|exists:trayeks,id',
+            'is_active'  => 'nullable|boolean',
+        ]);
+
+        $trayek = Trayek::findOrFail($request->trayek_id);
+        $isActive = (bool) $request->input('is_active', 0);
+
+        DB::transaction(function () use ($angkot, $request, $trayek, $isActive) {
+            // kalau user mengaktifkan angkot ini, matikan semua angkot lain milik user tsb
+            if ($isActive) {
+                Angkot::where('user_id', $angkot->user_id)
+                    ->where('id', '!=', $angkot->id)
+                    ->update(['is_active' => false]);
+            }
+
+            $angkot->update([
+                'plat_nomor'  => $request->plat_nomor,
+                'trayek_id'   => $request->trayek_id,
+                'kode_trayek' => $trayek->kode_trayek,
+                'is_active'   => $isActive,
+            ]);
+        });
+
+        return redirect()->route('driver.angkot.index')
+            ->with('success', 'Angkot berhasil diupdate');
     }
+
 
     public function destroy(Angkot $angkot) {
         if($angkot->user_id !== Auth::id()) abort(403);
