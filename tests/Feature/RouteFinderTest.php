@@ -107,6 +107,14 @@ class RouteFinderTest extends TestCase
             }
         }
 
+        fwrite(STDERR, "\n" . print_r(array_map(
+            fn ($route) => array_values(array_map(
+                fn ($segment) => $segment['trayek_id'],
+                array_filter($route['segments'], fn ($segment) => $segment['type'] === 'angkot')
+            )),
+            $routes
+        ), true));
+
         $this->assertSame([1, 2], $angkotTrayekIds);
         $this->assertGreaterThanOrEqual(1, $walkSegments);
     }
