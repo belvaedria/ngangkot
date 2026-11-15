@@ -58,7 +58,7 @@ class RouteFinderTest extends TestCase
             'angkot',
             array_column($routes[0]['segments'], 'type')
         );
-        $this->assertSame(1, $routes[0]['segments'][1]['trayek_id']);
+        $angkotSegments = array_values(array_filter(\n            $routes[0]['segments'],\n            fn (array $segment) => $segment['type'] === 'angkot'\n        ));\n        $this->assertNotEmpty($angkotSegments);\n        $this->assertSame(1, $angkotSegments[0]['trayek_id']);
         $this->assertGreaterThan(0, $routes[0]['total_duration_min']);
         $this->assertSame('FeatureCollection', $routes[0]['map_geojson']['type']);
     }
