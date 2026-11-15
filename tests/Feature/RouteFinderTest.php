@@ -5,34 +5,14 @@ namespace Tests\Feature;
 use App\Services\GeoNamer;
 use App\Services\RouteFinder;
 use App\Services\WalkRouter;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Mockery;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class RouteFinderTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Schema::dropIfExists('trayeks');
-        Schema::create('trayeks', function (Blueprint $table) {
-            $table->id();
-            $table->string('nama_trayek');
-            $table->longText('rute_json')->nullable();
-            $table->string('warna_angkot')->nullable();
-            $table->timestamps();
-        });
-    }
-
-    protected function tearDown(): void
-    {
-        Schema::dropIfExists('trayeks');
-
-        parent::tearDown();
-    }
+    use RefreshDatabase;
 
     public function test_it_finds_a_route_using_one_trayek(): void
     {
@@ -146,7 +126,13 @@ class RouteFinderTest extends TestCase
     {
         DB::table('trayeks')->insert([
             'id' => $id,
+            'kode_trayek' => 'T' . $id,
             'nama_trayek' => $name,
+            'lat_asal' => $coordinates[0][1],
+            'lng_asal' => $coordinates[0][0],
+            'lat_tujuan' => $coordinates[count($coordinates) - 1][1],
+            'lng_tujuan' => $coordinates[count($coordinates) - 1][0],
+            'harga' => 5000,
             'rute_json' => json_encode([
                 'type' => 'FeatureCollection',
                 'features' => [[
