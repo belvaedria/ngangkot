@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Trayek;
 use App\Services\GeoNamer;
 use App\Services\RouteFinder;
 use App\Services\WalkRouter;
@@ -58,7 +57,14 @@ class RouteFinderTest extends TestCase
             'angkot',
             array_column($routes[0]['segments'], 'type')
         );
-        $angkotSegments = array_values(array_filter(\n            $routes[0]['segments'],\n            fn (array $segment) => $segment['type'] === 'angkot'\n        ));\n        $this->assertNotEmpty($angkotSegments);\n        $this->assertSame(1, $angkotSegments[0]['trayek_id']);
+
+        $angkotSegments = array_values(array_filter(
+            $routes[0]['segments'],
+            fn (array $segment) => $segment['type'] === 'angkot'
+        ));
+
+        $this->assertNotEmpty($angkotSegments);
+        $this->assertSame(1, $angkotSegments[0]['trayek_id']);
         $this->assertGreaterThan(0, $routes[0]['total_duration_min']);
         $this->assertSame('FeatureCollection', $routes[0]['map_geojson']['type']);
     }
@@ -138,7 +144,7 @@ class RouteFinderTest extends TestCase
                         'type' => 'LineString',
                         'coordinates' => $coordinates,
                     ],
-                    'properties' => new \stdClass(),
+                    'properties' => new \\stdClass(),
                 ]],
             ]),
             'warna_angkot' => '#123456',
