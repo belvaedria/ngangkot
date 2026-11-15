@@ -144,7 +144,7 @@ class RouteFinderTest extends TestCase
                         'type' => 'LineString',
                         'coordinates' => $coordinates,
                     ],
-                    'properties' => new \\stdClass(),
+                    'properties' => new \stdClass(),
                 ]],
             ]),
             'warna_angkot' => '#123456',
