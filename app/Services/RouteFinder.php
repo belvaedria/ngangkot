@@ -63,16 +63,6 @@ class RouteFinder
         $this->connectVirtualNodeToGraph('__origin__', $latAsal, $lngAsal, $nodes, $edges, $walkRadius);
         $this->connectVirtualNodeToGraph('__dest__', $latTujuan, $lngTujuan, $nodes, $edges, $walkRadius);
 
-        $edges['__origin__'] = [];
-        $edges['__dest__'] = [];
-
-        $edges['__origin__'] = [];
-        $edges['__dest__']   = [];
-
-        // Connect origin/dest ke node sekitar (walk)
-        $this->connectVirtualNodeToGraph('__origin__', $latAsal, $lngAsal, $nodes, $edges, $walkRadius);
-        $this->connectVirtualNodeToGraph('__dest__', $latTujuan, $lngTujuan, $nodes, $edges, $walkRadius);
-
         if (empty($edges['__origin__']) || empty($edges['__dest__'])) {
             // fallback: cari direct 1-trayek (mirip versi controller lama)
             return $this->fallbackDirectOneTrayek($latAsal, $lngAsal, $latTujuan, $lngTujuan);
@@ -402,13 +392,15 @@ class RouteFinder
                 if ($type === 'walk') $w *= $walkMultiplier;
 
                 $extra = 0.0;
-                $nextPrevTrayek = null;
+                // Pertahankan trayek terakhir saat berjalan kaki agar perpindahan
+                // ke trayek berbeda tetap terhitung sebagai transfer.
+                $nextPrevTrayek = $uPrevTrayek;
                 $nextTransfers = $uTransfers;
 
                 if ($type === 'angkot') {
                     $currTrayek = $edge['trayek_id'] ?? null;
 
-                    // transfer terjadi kalau pindah trayek (dan bukan naik pertama)
+                    // Transfer terjadi saat naik trayek berbeda dari trayek sebelumnya.
                     if ($uPrevTrayek !== null && $currTrayek !== null && $uPrevTrayek !== $currTrayek) {
                         $nextTransfers++;
                         $extra += $transferPenalty;
