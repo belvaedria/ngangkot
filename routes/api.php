@@ -10,4 +10,3 @@ Route::get('/trayeks', [TrayekController::class, 'index']);
 Route::get('/trayeks/{kode}', [TrayekController::class, 'show']);
 Route::post('/navigasi/cari', [NavigasiController::class, 'searchRoute']);
 
-
